@@ -1,7 +1,6 @@
 
 import boto3
 from boto3.dynamodb.conditions import Key
-import os
 from dotenv import dotenv_values
 
 config = dotenv_values(".env")

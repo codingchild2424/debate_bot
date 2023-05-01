@@ -6,9 +6,9 @@ from time import time
 import json
 import boto3
 
-from db_modules import get_db, put_item, get_item, get_lastest_item
-from gpt_modules import gpt_call
-from debate_bot import debate_bot
+from modules.db_modules import get_db, put_item, get_item, get_lastest_item
+from modules.gpt_modules import gpt_call
+from bots.debate_bot import debate_bot
 
 import os
 

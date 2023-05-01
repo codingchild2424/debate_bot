@@ -1,6 +1,6 @@
 import re
 from langchain.prompts import PromptTemplate
-from gpt_modules import gpt_call
+from modules.gpt_modules import gpt_call
 
 def debate_bot(prompt, history="", debate_subject="", bot_role=""):
 
