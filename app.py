@@ -1,27 +1,23 @@
 
 import streamlit as st
 from streamlit_chat import message
-import requests
-from time import time
-import json
-import boto3
 
-from modules.db_modules import get_db, put_item, get_item, get_lastest_item
-from modules.gpt_modules import gpt_call
-from bots.debate_bot import debate_bot
-
-import os
+# modules
+from modules.db_modules import get_db
+from modules.db_modules import get_lastest_item
+from modules.query_modules import query
 
 
-
-# DB
+#############################################
+# DB connection
+#############################################
 dynamodb = get_db()
 debate_bot_log_table = dynamodb.Table('debate_bot_log')
 
 
-###########
-# streamlit
-###########
+#############################################
+# Streamlit setting
+#############################################
 st.header("DEBATE BOT")
 
 if 'generated' not in st.session_state:
@@ -31,53 +27,41 @@ if 'past' not in st.session_state:
     st.session_state['past'] = []
 
 
-def query(user_id, prompt, debate_subject, bot_role):
-
-    history_list = get_lastest_item(
-        table=debate_bot_log_table, 
-        name_of_partition_key="user_id",
-        value_of_partition_key=user_id,
-        )
-    
-    # history가 없다면,
-    if history_list==[]:
-        history = ""
-        # history가 있다면, [{}, {}]
-    else:
-        history = ""
-        history_dummy_list = []
-        for dic in history_list:
-            history_dummy_list.append(dic['prompt'])
-        
-        history = "\n".join(history_dummy_list)
-
-
-    bot_result = debate_bot(prompt, history, debate_subject, bot_role)
-
-    # put_db
-    save_prompt = "\n".join([
-        "User: " + prompt, 
-        "Cicero Bot: " + bot_result
-        ])
-
-    item = {
-        'user_id': user_id,
-        'prompt': save_prompt,
-        'time_stamp': str(time()),
-        'debate_subject': debate_subject,
-        }
-
-    put_item(debate_bot_log_table, item)
-    
-    return bot_result
-
 #############################################
 # Setting Form
 #############################################
+
+if 'user_id' not in st.session_state:
+    st.session_state.user_id = ""
+
 if 'debate_topic' not in st.session_state:
     st.session_state.debate_topic = ""
 
+if 'session_num' not in st.session_state:
+    st.session_state.session_num = 0
+
+if 'session_first' not in st.session_state:
+    st.session_state.session_first = True
+
+
+def form_callback():
+    #session_num = st.session_state.session_num
+    st.session_state.session_num += 1
+    print("st.session_state.session_num", st.session_state.session_num)
+    st.session_state.session_first = False
+
+
 with st.form("first_form"):
+
+    #############################################
+    # User id
+    #############################################
+    user_id = st.text_input(
+        "Enter Your User ID", 
+        st.session_state.user_id, # For remain the id
+        key='user_id'
+        )
+
     #############################################
     # Debate Theme
     #############################################
@@ -174,27 +158,47 @@ with st.form("first_form"):
         '3. Choose Role of Bot',
         bot_role_list
     )
-    
-    submitted = st.form_submit_button('Send')
 
+    # user_id가 있는 경우
+    if user_id != "":
+        # user의 id에서 가장 최신 데이터 1개만 쿼리함
+        item = get_lastest_item(
+            table=debate_bot_log_table,
+            name_of_partition_key='user_id',
+            value_of_partition_key=user_id,
+            limit_num=1
+        )
+        print("item", item)
+
+        # 처음 들어온 유저라면
+        if item == []:
+            session_num = 0
+        # 이미 데이터가 있는 유저라면, session_num에 1을 추가하기(갱신)
+        else:
+            if st.session_state.session_first == True:
+                st.session_state.session_num = int(item[0]['session_num']) + 1
+            elif st.session_state.session_first == False:
+                st.session_state.session_num = st.session_state.session_num
+            #session_num = st.session_state.session_num
+            #print("session_num", session_num)
+            print("st.session_state.session_num", st.session_state.session_num)
+    else:
+        print("User_name을 입력해주세요.")
+    
+    submitted = st.form_submit_button(
+        'Send',
+        on_click=form_callback
+        )
 
 
 #############################################
 # Chatbot
 #############################################
-
-if 'user_id' not in st.session_state:
-    st.session_state.user_id = ""
-
 if 'debate_subject' not in st.session_state:
     st.session_state.debate_subject = ""
 
 with st.form('form', clear_on_submit=True):
-    user_id = st.text_input(
-        "Enter Your User ID", 
-        st.session_state.user_id, # For remain the id
-        key='user_id'
-        )
+
     user_input = st.text_input(
         'Message', 
         '', 
@@ -205,7 +209,14 @@ with st.form('form', clear_on_submit=True):
 
 if submitted and user_input:
 
-    output = query(user_id, user_input, debate_topic, bot_role)
+    output = query(
+        db_table=debate_bot_log_table, 
+        user_id=user_id, 
+        prompt=user_input, 
+        debate_subject=debate_topic, 
+        bot_role=bot_role,
+        session_num=st.session_state.session_num
+        )
 
     st.session_state.past.append(user_input)
     st.session_state.generated.append(output)

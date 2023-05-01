@@ -48,12 +48,12 @@ def get_item(table, item):
         print('Item not found')
         return None
 
-def get_lastest_item(table, name_of_partition_key, value_of_partition_key):
+def get_lastest_item(table, name_of_partition_key, value_of_partition_key, limit_num=10):
 
     response = table.query (
         KeyConditionExpression=Key(name_of_partition_key).eq(value_of_partition_key),
         ScanIndexForward=True,
-        Limit=10 # 1
+        Limit=limit_num
     )
     
     return response['Items']
