@@ -378,7 +378,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                 pass
 
         # Judgement.
-        if history_num == 2:
+        if history_num >= 2:
             judgement_word_list = "\n".join([
                 "!!Instruction!",
                 "You are now the judge of this debate. Evaluate the debate according to the rules below.",
