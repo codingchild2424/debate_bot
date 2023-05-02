@@ -21,7 +21,7 @@ def query(
     
     print("query session", session_num)
 
-    history = get_history(
+    history, history_num = get_history(
         db_table, 
         name_of_partition_key="user_id", 
         value_of_partition_key=user_id,
@@ -33,7 +33,8 @@ def query(
         prompt, 
         history, 
         debate_subject, 
-        bot_role
+        bot_role,
+        history_num
         )
     
     time_stamp = str(datetime.fromtimestamp(time()))
