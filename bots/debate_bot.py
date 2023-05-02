@@ -4,6 +4,11 @@ from langchain.prompts import PromptTemplate
 from modules.gpt_modules import gpt_call
 
 
+def erase_start_word_and_after(text, start_word):
+    pattern = re.compile(re.escape(start_word) + '.*')
+    return re.sub(pattern, '', text)
+
+
 def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0):
 
     print("prompt", prompt)
@@ -80,7 +85,9 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
                 # preprocess
                 # if first_response contain the first debater for the con side's opinion, remove it.
-                first_response = re.sub(debate_role[1] + ":.*", "", first_response)
+                first_response = erase_start_word_and_after(first_response, debate_role[1])
+
+                #first_response = re.sub(debate_role[1] + ":.*", "", first_response)
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -127,9 +134,10 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
                 # preprocess
                 # if first_response contain the first debater for the con side's opinion, remove it.
-                first_response = re.sub(debate_role[1] + ":.*", "", first_response)
+                first_response = erase_start_word_and_after(first_response, debate_role[1])
                 # if second_response contain the first debater for the con side's opinion, remove it.
-                second_response = re.sub(debate_role[2] + ":.*", "", second_response)
+                #second_response = re.sub(debate_role[2] + ":.*", "", second_response)
+                second_response = erase_start_word_and_after(second_response, debate_role[2])
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -196,11 +204,13 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
                 # preprocess
                 # if first_response contain the first debater for the con side's opinion, remove it.
-                first_response = re.sub(debate_role[1] + ":.*", "", first_response)
+                first_response = erase_start_word_and_after(first_response, debate_role[1])
                 # if second_response contain the first debater for the con side's opinion, remove it.
-                second_response = re.sub(debate_role[2] + ":.*", "", second_response)
+                #second_response = re.sub(debate_role[2] + ":.*", "", second_response)
+                second_response = erase_start_word_and_after(second_response, debate_role[2])
                 # if third_response contain the first debater for the con side's opinion, remove it.
-                third_response = re.sub(debate_role[3] + ":.*", "", third_response)
+                thir_response = erase_start_word_and_after(thir_response, debate_role[3])
+                #third_response = re.sub(debate_role[3] + ":.*", "", third_response)
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -216,8 +226,42 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
             else:
                 pass
 
+        # Answer and Ask Judgement.
         if history_num == 1:
-            pass
+            print("history1: ", history)
+
+            # user가 가장 첫번째로 답변했다면, 봇이 2, 3, 4 답변을 하고, 평가할지를 물어보면 됨.
+            if "User debate role: first debater for the pro side" in history:
+                ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
+                bot_response = ask_judgement
+
+            # user가 두번째로 답변했다면, 봇이 3, 4 번째 답변을 하고, 평가할지를 물어보면 됨.
+            elif "User debate role: first debater for the con side" in history:
+
+                ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
+                bot_response = ask_judgement
+
+            # user가 세번째로 답변했다면, 봇이 4 번째 답변을 하고, 평가할지를 물어보면 됨.
+            elif "User debate role: second debater for the pro side" in history:
+                ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
+                bot_response = ask_judgement
+
+            # user가 네번째로 답변했다면, 바로 평가할지를 물어보면 됨.
+            elif "User debate role: second debater for the con side" in history:
+                ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
+                bot_response = ask_judgement
+            else:
+                pass
+
+        # Judgement.
+        if history_num == 2:
+            judgement_word_list = "\n".join([
+                "!!Instruction!",
+                "You are now the judge of this debate. Evaluate the debate according to the rules below.",
+                "Rule 1. Decide between the pro and con teams.",
+                "Rule 2. Summarize the debate as a whole and what each debater said.",
+                "Rule 3. For each debater, explain what was persuasive and what made the differnce between winning and losing.",
+            ])
 
 
         return bot_response
