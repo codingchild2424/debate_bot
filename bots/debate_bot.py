@@ -228,23 +228,139 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
         # Answer and Ask Judgement.
         if history_num == 1:
+
+            debate_role = [
+                "first debater for the pro side", 
+                "first debater for the con side", 
+                "second debater for the pro side",
+                "second debater for the con side"
+            ]
+
             print("history1: ", history)
 
             # user가 가장 첫번째로 답변했다면, 봇이 2, 3, 4 답변을 하고, 평가할지를 물어보면 됨.
             if "User debate role: first debater for the pro side" in history:
+
+                # second
+                second_prompt_template = PromptTemplate(
+                    input_variables=["prompt"],
+                    template="\n".join([
+                        history,
+                        "User: {prompt}",
+                        debate_role[2] + ": "
+                        ])
+                )
+                second_bot_prompt = second_prompt_template.format(
+                    prompt=prompt
+                )
+                second_response = gpt_call(second_bot_prompt)
+
+
+                # third
+                third_prompt_template = PromptTemplate(
+                    input_variables=["prompt"],
+                    template="\n".join([
+                        history,
+                        "User: {prompt}",
+                        debate_role[2] + ": "
+                        ])
+                )
+                third_bot_prompt = third_prompt_template.format(
+                    prompt=prompt
+                )
+                third_response = gpt_call(third_bot_prompt)
+
+                # fourth
+                fourth_prompt_template = PromptTemplate(
+                    input_variables=["prompt"],
+                    template="\n".join([
+                        history,
+                        "User: {prompt}",
+                        debate_role[3] + ": "
+                        ])
+                )
+                fourth_bot_prompt = fourth_prompt_template.format(
+                    prompt=prompt
+                )
+                fourth_response = gpt_call(fourth_bot_prompt)
+
                 ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
-                bot_response = ask_judgement
+                bot_response = "\n".join([
+                    "[first debater for the con side]: " + "\n" +  second_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[second debater for the pro sid]: " + "\n" +  third_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[second debater for the con side]: " + "\n" +  fourth_response + "\n",
+                    "-----------------------------------------------------------------",
+                    ask_judgement
+                ])
 
             # user가 두번째로 답변했다면, 봇이 3, 4 번째 답변을 하고, 평가할지를 물어보면 됨.
             elif "User debate role: first debater for the con side" in history:
 
+                # third
+                third_prompt_template = PromptTemplate(
+                    input_variables=["prompt"],
+                    template="\n".join([
+                        history,
+                        "User: {prompt}",
+                        debate_role[2] + ": "
+                        ])
+                )
+                third_bot_prompt = third_prompt_template.format(
+                    prompt=prompt
+                )
+                third_response = gpt_call(third_bot_prompt)
+
+                # fourth
+                fourth_prompt_template = PromptTemplate(
+                    input_variables=["prompt"],
+                    template="\n".join([
+                        history,
+                        "User: {prompt}",
+                        debate_role[2] + ": " + third_response,
+                        debate_role[3] + ": "
+                        ])
+                )
+                fourth_bot_prompt = fourth_prompt_template.format(
+                    prompt=prompt
+                )
+                fourth_response = gpt_call(fourth_bot_prompt)
+
+                # ask_judgement
                 ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
-                bot_response = ask_judgement
+                bot_response = "\n".join([
+                    "[second debater for the pro sid]: " + "\n" +  third_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[second debater for the con side]: " + "\n" +  fourth_response + "\n",
+                    "-----------------------------------------------------------------",
+                    ask_judgement
+                ])
 
             # user가 세번째로 답변했다면, 봇이 4 번째 답변을 하고, 평가할지를 물어보면 됨.
             elif "User debate role: second debater for the pro side" in history:
+
+                fourth_prompt_template = PromptTemplate(
+                    input_variables=["prompt"],
+                    template="\n".join([
+                        history,
+                        "User: {prompt}",
+                        debate_role[3] + ": "
+                        ])
+                )
+                fourth_bot_prompt = fourth_prompt_template.format(
+                    prompt=prompt
+                )
+                fourth_response = gpt_call(fourth_bot_prompt)
+
+
+
                 ask_judgement = "Do you want to be the judge of this debate? (If you want, enter any words.)"
-                bot_response = ask_judgement
+                bot_response = "\n".join([
+                    "[second debater for the con side]: " + "\n" + fourth_response + "\n",
+                    "-----------------------------------------------------------------",
+                    ask_judgement
+                ])
 
             # user가 네번째로 답변했다면, 바로 평가할지를 물어보면 됨.
             elif "User debate role: second debater for the con side" in history:
@@ -262,6 +378,24 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                 "Rule 2. Summarize the debate as a whole and what each debater said.",
                 "Rule 3. For each debater, explain what was persuasive and what made the differnce between winning and losing.",
             ])
+
+            judgement_prompt_template = PromptTemplate(
+                input_variables=["prompt"],
+                template="\n".join([
+                    history,
+                    "{prompt}",
+                    judgement_word_list,
+                    "Judgement: "
+                    ])
+            )
+            judgement_bot_prompt = judgement_prompt_template.format(
+                    prompt=""
+            )
+            judgement_response = gpt_call(judgement_bot_prompt)
+
+            bot_response = "\n".join([
+                    "[Judgement]: " + "\n" + judgement_response + "\n",
+                ])
 
 
         return bot_response
