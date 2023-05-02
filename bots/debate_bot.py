@@ -39,6 +39,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                 "Debate Rules: ",
                 "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
                 "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.\n",
+                "3) Answer logically with an introduction, body, and conclusion.", #add this one.
                 "User debate role: " + user_debate_role,
                 "Bot debate roles: " + ", ".join(bot_debate_role_list) + "\n",
                 "Debate subject: " + debate_subject
@@ -67,6 +68,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     template="\n".join([
                         bot_preset, #persona
                         "{prompt}",
+                        "Only say " + debate_role[0] + "\'s opinion after :. Do not use any other words.",
                         debate_role[0] + ": "
                         ])
                 )
@@ -77,7 +79,9 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
-                    "First debater for the pro side: " + first_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[First debater for the pro side]: " + "\n" + first_response + "\n",
+                    "-----------------------------------------------------------------",
                     "It's your turn! Write your opinion!"
                 ])
 
@@ -106,6 +110,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     input_variables=["first_prompt"],
                     template="\n".join([
                         bot_preset, #persona
+                        "Only say " + debate_role[1] + "\'s opinion after :. Do not use any other words..",
                         debate_role[0] + ": " + "{first_prompt}",
                         debate_role[1] + ": "
                         ])
@@ -117,8 +122,11 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
-                    "First debater for the pro side: " + first_response + "\n",
-                    "First debater for the con side: " + second_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[First debater for the pro side]: " + "\n" + first_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[First debater for the con side]: " + "\n" + second_response + "\n",
+                    "-----------------------------------------------------------------",
                     "It's your turn! Write your opinion!"
                 ])
 
@@ -148,6 +156,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     input_variables=["first_prompt"],
                     template="\n".join([
                         bot_preset, #persona
+                        "Only say " + debate_role[1] + "'s opinion after :. Do not use any other words.",
                         debate_role[0] + ": " + "{first_prompt}",
                         debate_role[1] + ": "
                         ])
@@ -162,6 +171,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     input_variables=["first_prompt", "second_prompt"],
                     template="\n".join([
                         bot_preset, #persona
+                        "Only say " + debate_role[2] + "\'s opinion after :. Do not use any other words.",
                         debate_role[0] + ": " + "{first_prompt}",
                         debate_role[1] + ": " + "{second_prompt}",
                         debate_role[2] + ": "
@@ -175,9 +185,13 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
-                    "First debater for the pro side: " + first_response + "\n",
-                    "First debater for the con side: " + second_response + "\n",
-                    "Second debater for the pro side: " + third_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[First debater for the pro side]: " + "\n" + first_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[First debater for the con side]: " + "\n" + second_response + "\n",
+                    "-----------------------------------------------------------------",
+                    "[Second debater for the pro side]: " + "\n" + third_response + "\n",
+                    "-----------------------------------------------------------------",
                     "It's your turn! Write your opinion!"
                 ])
 
