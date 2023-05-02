@@ -52,7 +52,7 @@ def get_lastest_item(table, name_of_partition_key, value_of_partition_key, limit
 
     response = table.query (
         KeyConditionExpression=Key(name_of_partition_key).eq(value_of_partition_key),
-        ScanIndexForward=True,
+        ScanIndexForward=False,
         Limit=limit_num
     )
     

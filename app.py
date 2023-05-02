@@ -19,6 +19,7 @@ debate_bot_log_table = dynamodb.Table('debate_bot_log')
 # Streamlit setting
 #############################################
 st.header("DEBATE BOT")
+st.text("If you want to reset your session, refresh the page.")
 
 if 'generated' not in st.session_state:
     st.session_state['generated'] = []
@@ -40,15 +41,29 @@ if 'debate_topic' not in st.session_state:
 if 'session_num' not in st.session_state:
     st.session_state.session_num = 0
 
-if 'session_first' not in st.session_state:
-    st.session_state.session_first = True
+if 'session_history_exist' not in st.session_state:
+    st.session_state.history_exist = False
+
+if 'debate_subject' not in st.session_state:
+    st.session_state.debate_subject = ""
 
 
-def form_callback():
-    #session_num = st.session_state.session_num
-    st.session_state.session_num += 1
-    print("st.session_state.session_num", st.session_state.session_num)
-    st.session_state.session_first = False
+def form_callback(history_exist):
+
+    # 과거 히스토리가 없다면, 세션 넘버를 0으로 초기화
+    if history_exist == False:
+        st.session_state.session_num = 0
+    # 과거 히스토리가 있다면, 유저의 데이터에서 session_num을 가져와서 사용함
+    else:
+        # 만약 session_state에 이전 대화 기록이 없다면, session_num에 1을 추가해서 업데이트함
+        if st.session_state.past == []:
+            st.session_state.session_num += 1
+        # 만약 session_state에 이전 대화 기록이 있다면, 업데이트가 필요없으므로 session_num을 업데이트하지 않으
+        else:
+            st.session_state.session_num = st.session_state.session_num
+        #st.experimental_rerun()
+
+    print("st.session_state.session_num(form_callback)", st.session_state.session_num)
 
 
 with st.form("first_form"):
@@ -56,12 +71,15 @@ with st.form("first_form"):
     #############################################
     # User id
     #############################################
+
+    user_id = ""
+
     user_id = st.text_input(
         "Enter Your User ID", 
         st.session_state.user_id, # For remain the id
         key='user_id'
         )
-
+ 
     #############################################
     # Debate Theme
     #############################################
@@ -159,7 +177,7 @@ with st.form("first_form"):
         bot_role_list
     )
 
-    # user_id가 있는 경우
+    # # user_id가 있는 경우
     if user_id != "":
         # user의 id에서 가장 최신 데이터 1개만 쿼리함
         item = get_lastest_item(
@@ -172,42 +190,31 @@ with st.form("first_form"):
 
         # 처음 들어온 유저라면
         if item == []:
-            session_num = 0
+            st.session_state.history_exist = False
         # 이미 데이터가 있는 유저라면, session_num에 1을 추가하기(갱신)
         else:
-            if st.session_state.session_first == True:
-                st.session_state.session_num = int(item[0]['session_num']) + 1
-            elif st.session_state.session_first == False:
-                st.session_state.session_num = st.session_state.session_num
-            #session_num = st.session_state.session_num
-            #print("session_num", session_num)
-            print("st.session_state.session_num", st.session_state.session_num)
+            st.session_state.history_exist = True
+            st.session_state.session_num = item[0]['session_num']
     else:
         print("User_name을 입력해주세요.")
     
-    submitted = st.form_submit_button(
-        'Send',
-        on_click=form_callback
-        )
-
-
-#############################################
-# Chatbot
-#############################################
-if 'debate_subject' not in st.session_state:
-    st.session_state.debate_subject = ""
-
-with st.form('form', clear_on_submit=True):
-
+    #############################################
+    # User input
+    #############################################
     user_input = st.text_input(
         'Message', 
         '', 
         key='input'
         )
-    submitted = st.form_submit_button('Send')
+    form_submitted = st.form_submit_button(
+        'Send',
+        on_click=form_callback(st.session_state.history_exist)
+        )
 
-
-if submitted and user_input:
+#############################################
+# Query
+#############################################
+if form_submitted and user_input:
 
     output = query(
         db_table=debate_bot_log_table, 
