@@ -7,6 +7,7 @@ from modules.gpt_modules import gpt_call
 def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0):
 
     print("prompt", prompt)
+    print("history", history)
 
     ##################################################
     # Bot Role에 따라서 Bot Persona 변경
@@ -38,8 +39,8 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
             debate_preset = "\n".join([
                 "Debate Rules: ",
                 "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
-                "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.\n",
-                "3) Answer logically with an introduction, body, and conclusion.", #add this one.
+                "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
+                "3) Answer logically with an introduction, body, and conclusion.\n", #add this one.
                 "User debate role: " + user_debate_role,
                 "Bot debate roles: " + ", ".join(bot_debate_role_list) + "\n",
                 "Debate subject: " + debate_subject
@@ -68,7 +69,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     template="\n".join([
                         bot_preset, #persona
                         "{prompt}",
-                        "Only say " + debate_role[0] + "\'s opinion after :. Do not use any other words.",
+                        "Only say " + debate_role[0] + "\'s opinion after \':\'. Do not write " + debate_role[1] + "\'s " + "opinions, " + debate_role[2] + "\'s " + "opinions and " + debate_role[3] + "\'s " + "opinions.",
                         debate_role[0] + ": "
                         ])
                 )
@@ -76,6 +77,10 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     prompt=""
                 )
                 first_response = gpt_call(first_bot_prompt)
+
+                # preprocess
+                # if first_response contain the first debater for the con side's opinion, remove it.
+                first_response = re.sub(debate_role[1] + ":.*", "", first_response)
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -110,7 +115,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     input_variables=["first_prompt"],
                     template="\n".join([
                         bot_preset, #persona
-                        "Only say " + debate_role[1] + "\'s opinion after :. Do not use any other words..",
+                        "Only say " + debate_role[1] + "\'s opinion after \':\'. Do not write " + debate_role[0] + "\'s " + "opinions, " + debate_role[2] + "\'s " + "opinions and " + debate_role[3] + "\'s " + "opinions.",
                         debate_role[0] + ": " + "{first_prompt}",
                         debate_role[1] + ": "
                         ])
@@ -119,6 +124,12 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     first_prompt=first_response
                 )
                 second_response = gpt_call(second_bot_prompt)
+
+                # preprocess
+                # if first_response contain the first debater for the con side's opinion, remove it.
+                first_response = re.sub(debate_role[1] + ":.*", "", first_response)
+                # if second_response contain the first debater for the con side's opinion, remove it.
+                second_response = re.sub(debate_role[2] + ":.*", "", second_response)
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -156,7 +167,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     input_variables=["first_prompt"],
                     template="\n".join([
                         bot_preset, #persona
-                        "Only say " + debate_role[1] + "'s opinion after :. Do not use any other words.",
+                        "Only say " + debate_role[1] + "'s opinion after \':\'. Do not write " + debate_role[0] + "\'s " + "opinions, " + debate_role[2] + "\'s " + "opinions and " + debate_role[3] + "\'s " + "opinions.",
                         debate_role[0] + ": " + "{first_prompt}",
                         debate_role[1] + ": "
                         ])
@@ -171,7 +182,7 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     input_variables=["first_prompt", "second_prompt"],
                     template="\n".join([
                         bot_preset, #persona
-                        "Only say " + debate_role[2] + "\'s opinion after :. Do not use any other words.",
+                        "Only say " + debate_role[2] + "\'s opinion after \':\'. Do not write " + debate_role[0] + "\'s " + "opinions, " + debate_role[1] + "\'s " + "opinions and " + debate_role[3] + "\'s " + "opinions.",
                         debate_role[0] + ": " + "{first_prompt}",
                         debate_role[1] + ": " + "{second_prompt}",
                         debate_role[2] + ": "
@@ -182,6 +193,14 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     second_prompt=second_response
                 )
                 third_response = gpt_call(third_bot_prompt)
+
+                # preprocess
+                # if first_response contain the first debater for the con side's opinion, remove it.
+                first_response = re.sub(debate_role[1] + ":.*", "", first_response)
+                # if second_response contain the first debater for the con side's opinion, remove it.
+                second_response = re.sub(debate_role[2] + ":.*", "", second_response)
+                # if third_response contain the first debater for the con side's opinion, remove it.
+                third_response = re.sub(debate_role[3] + ":.*", "", third_response)
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -194,65 +213,11 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                     "-----------------------------------------------------------------",
                     "It's your turn! Write your opinion!"
                 ])
-
             else:
                 pass
 
+        if history_num == 1:
+            pass
+
+
         return bot_response
-
-                # dialog_prompt_template = PromptTemplate(
-                #     input_variables=["prompt"],
-                #     template="\n".join([
-                #         bot_persona, #persona
-                #         few_shot_prompt,
-                #         "Debate Subject: " + debate_subject,
-                #         history,
-                #         "User: {prompt}",
-                #         "Bot: "
-                #         ])
-                # )
-
-    #         bot_prompt = dialog_prompt_template.format(
-    #             prompt=prompt
-    #         )
-    #         bot_response = gpt_call(bot_prompt)
-
-    #         return bot_response
-    #     # Assign user one of the following roles
-    #     elif history_num == 1:
-    #         pass
-
-    #     bot_persona = "\n".join([
-    #         'Debate Rules:',
-    #         "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
-    #         "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
-
-    #         "Assign user one of the following roles: first debater for the pro side, first debater for the con side, second debater fo the pro side, seconde debater for the con side.",
-    #         "Debate the remaining roles you didn't give user. With given Debate Subject.",
-
-    #     ])
-    #     few_shot_prompt = "\n".join([
-    #         ""
-    #     ])
-    # else:
-    #     print("bot_role is needed")
-
-
-    # dialog_prompt_template = PromptTemplate(
-    #     input_variables=["prompt"],
-    #     template="\n".join([
-    #         bot_persona, #persona
-    #         few_shot_prompt,
-    #         "Debate Subject: " + debate_subject,
-    #         history,
-    #         "User: {prompt}",
-    #         "Bot: "
-    #         ])
-    # )
-
-    # bot_prompt = dialog_prompt_template.format(
-    #     prompt=prompt
-    # )
-    # bot_response = gpt_call(bot_prompt)
-
-    # return bot_response
