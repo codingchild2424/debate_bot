@@ -86,6 +86,8 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                 # preprocess
                 # if first_response contain the first debater for the con side's opinion, remove it.
                 first_response = erase_start_word_and_after(first_response, debate_role[1])
+                first_response = erase_start_word_and_after(first_response, debate_role[2])
+                first_response = erase_start_word_and_after(first_response, debate_role[3])
 
                 #first_response = re.sub(debate_role[1] + ":.*", "", first_response)
 
@@ -135,9 +137,12 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                 # preprocess
                 # if first_response contain the first debater for the con side's opinion, remove it.
                 first_response = erase_start_word_and_after(first_response, debate_role[1])
+                first_response = erase_start_word_and_after(first_response, debate_role[2])
+                first_response = erase_start_word_and_after(first_response, debate_role[3])
                 # if second_response contain the first debater for the con side's opinion, remove it.
                 #second_response = re.sub(debate_role[2] + ":.*", "", second_response)
                 second_response = erase_start_word_and_after(second_response, debate_role[2])
+                second_response = erase_start_word_and_after(second_response, debate_role[3])
 
                 bot_response = "\n".join([
                     bot_preset + "\n",
@@ -205,9 +210,12 @@ def debate_bot(prompt, history="", debate_subject="", bot_role="", history_num=0
                 # preprocess
                 # if first_response contain the first debater for the con side's opinion, remove it.
                 first_response = erase_start_word_and_after(first_response, debate_role[1])
+                first_response = erase_start_word_and_after(first_response, debate_role[2])
+                first_response = erase_start_word_and_after(first_response, debate_role[3])
                 # if second_response contain the first debater for the con side's opinion, remove it.
                 #second_response = re.sub(debate_role[2] + ":.*", "", second_response)
                 second_response = erase_start_word_and_after(second_response, debate_role[2])
+                second_response = erase_start_word_and_after(second_response, debate_role[3])
                 # if third_response contain the first debater for the con side's opinion, remove it.
                 thir_response = erase_start_word_and_after(thir_response, debate_role[3])
                 #third_response = re.sub(debate_role[3] + ":.*", "", third_response)
