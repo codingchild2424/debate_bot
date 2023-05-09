@@ -3,4 +3,5 @@ boto3
 openai
 langchain
 python-dotenv
-ffmpeg-python
+gradio
+git+https://github.com/openai/whisper.git

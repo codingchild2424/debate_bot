@@ -3,4 +3,4 @@
 # ffmpeg
 
 apt-get update
-apt-get ffmpeg
+apt-get install ffmpeg
