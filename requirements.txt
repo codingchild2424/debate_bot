@@ -3,3 +3,4 @@ boto3
 openai
 langchain
 python-dotenv
+ffmpeg-python
