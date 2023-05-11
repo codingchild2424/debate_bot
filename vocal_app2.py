@@ -4,6 +4,9 @@ import streamlit as st
 # Page Configuration
 st.set_page_config(page_title="Streamlit App")
 
+if "page" not in st.session_state:
+    st.session_state.page = "Page 1"
+
 # Save function (placeholder)
 def save_info(user_id, openAI_token, debate_theme):
     # You can add the code to save the submitted info (e.g., to a database)
@@ -13,6 +16,11 @@ def save_info(user_id, openAI_token, debate_theme):
 
 # Session state
 #session_state = SessionState.get(user_id="", openAI_token="", debate_theme="")
+
+# for callback when button is clicked
+def page_controller():
+    st.session_state.page = "Page 2"
+
 
 # Page 1
 def page1():
@@ -30,7 +38,10 @@ def page1():
         # Add more conditions for other debate themes
         st.write('Topics:', ', '.join(topic_list))
 
-    if st.button('Submit all information'):
+    if st.button(
+        label='Submit all information',
+        on_click=page_controller
+        ):
         # You can add a function here to save the submitted info
         save_info(
             st.session_state.user_id, 
@@ -39,13 +50,22 @@ def page1():
             )
         st.write('Information submitted successfully.')
 
+
 # Page 2
 def page2():
     st.header('Page 2')
-    tab_names = ['Tab 1', 'Tab 2', 'Tab 3', 'Tab 4', 'Tab 5']
-    selected_tab = st.selectbox("Select a tab", tab_names)
+    tab1, tab2, tab3 = st.tabs(["Tab 1", "Tab 2", "Tab 3"])
+    
+    with tab1:
+        st.header("Tab 1")
 
-    st.write(f"You have selected {selected_tab}. Please input sound.")
+    with tab2:
+        st.header("Tab 2")
+
+    with tab3:
+        st.header("Tab 3")
+
+    #st.write(f"You have selected {selected_tab}. Please input sound.")
     # Insert the code to input sound using mike and convert to text
 
 
@@ -56,7 +76,11 @@ pages = {
 }
 
 st.sidebar.title('Navigation')
-selection = st.sidebar.radio("Go to", list(pages.keys()))
+#selection = st.sidebar.radio("Go to", list(pages.keys()))
+
+selection = st.session_state.page
+
+print("selection:", selection)
 
 page = pages[selection]
 
