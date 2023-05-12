@@ -216,21 +216,44 @@ def page3():
             height=100)
         st.sidebar.button("Ask")
 
+#########################################################
+# Page4
+#########################################################
+def page4():
+
+    with st.sidebar:
+        st.sidebar.title('Ask to GPT')
+        st.sidebar.text_area(
+            label="Input text here", 
+            placeholder="Input text here",
+            height=100)
+        st.sidebar.button("Ask")
+
+
+#########################################################
+# Page5
+#########################################################
+def page5():
+
+    with st.sidebar:
+        st.sidebar.title('Ask to GPT')
+        st.sidebar.text_area(
+            label="Input text here", 
+            placeholder="Input text here",
+            height=100)
+        st.sidebar.button("Ask")
+
 
 #########################################################
 # Page Routing
 #########################################################
 pages = {
-    "Page 1": page1,
-    "Page 2": page2,
-    "Page 3": page3
+    "Page 1": page1, # user_id와 openai_key를 입력받는 페이지
+    "Page 2": page2, # 원하는 기능을 선택하는 페이지
+    "Page 3": page3, # Total Debate
+    "Page 4": page4, # Evaluation Only
+    "Page 5": page5, # Analyzing Utterances
 }
-
-#########################################################
-# Nav Bar
-#########################################################
-# st.sidebar.title('Navigation')
-#selection = st.sidebar.radio("Go to", list(pages.keys()))
 
 selection = st.session_state.page
 print("selection:", selection)
