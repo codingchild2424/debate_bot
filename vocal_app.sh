@@ -1,0 +1,1 @@
+streamlit run vocal_app.py
