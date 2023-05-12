@@ -172,7 +172,9 @@ def page2():
     with tab1:
         st.header(tab_titles["tab1"])
         debate_themes = ['Education','Sports','Religion','Justice','Pandemic','Politics','Minority','etc']
-        st.session_state.debate_theme = st.selectbox("Select a debate theme", debate_themes)
+
+        st.write("1. Select a debate theme")
+        st.session_state.debate_theme = st.selectbox("Choose your debate theme", debate_themes)
 
         if st.session_state.debate_theme == 'Education':
             topic_list = [
@@ -239,11 +241,25 @@ def page2():
                 "Assuming feasibility, THW choose to continuously relive the happiest moment of one’s life."
                 ]
 
-        st.session_state.topic = st.selectbox("Select a topic_list", topic_list)
+        st.write("2. Select a topic")
+        st.session_state.topic = st.selectbox("Choose your topic", topic_list)
 
-        st.text_area("Input sound here", height=100)
-
-        
+        st.write("3. Write 3 cases here (Each case should be consisted of opinion, reasoning, and example).")
+        st.text_area(
+            label="Case 1",
+            placeholder="Each case should be consisted of opinion, reasoning, and example.",
+            height=100
+            )
+        st.text_area(
+            label="Case 2",
+            placeholder="Each case should be consisted of opinion, reasoning, and example.",
+            height=100
+            )
+        st.text_area(
+            label="Case 3",
+            placeholder="Each case should be consisted of opinion, reasoning, and example.",
+            height=100
+            )
                 
         #st.session_state.topic = topic#st.selectbox("Select a topic_list", topic_list)
         #st.write(f"You have selected {st.session_state.topic_list}. Please input sound.")
