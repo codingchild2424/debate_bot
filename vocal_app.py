@@ -42,8 +42,9 @@ def page_controller():
     else:
         st.session_state.page = "Page 2"
 
-
+#########################################################
 # Page 1
+#########################################################
 def page1():
 
     # for local variables
@@ -146,9 +147,14 @@ def page1():
                 )
             st.write('Information submitted successfully.')
 
+#########################################################
 # Page 2
+#########################################################
 def page2():
     st.header('Page 2')
+
+    tab_titles = []
+
     tab1, tab2, tab3 = st.tabs(["Tab 1", "Tab 2", "Tab 3"])
     
     with tab1:
@@ -164,22 +170,24 @@ def page2():
     # Insert the code to input sound using mike and convert to text
 
 
+#########################################################
 # Page Routing
+#########################################################
 pages = {
     "Page 1": page1,
     "Page 2": page2
 }
 
+#########################################################
 # Nav Bar
+#########################################################
 # st.sidebar.title('Navigation')
 #selection = st.sidebar.radio("Go to", list(pages.keys()))
 
 selection = st.session_state.page
-
 print("selection:", selection)
 
 page = pages[selection]
-
 # Execute selected page function
 page()
 
