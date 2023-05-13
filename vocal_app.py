@@ -1,4 +1,8 @@
 import streamlit as st
+import openai
+
+from dotenv import dotenv_values
+from streamlit_chat import message
 #import SessionState
 
 # Page Configuration
@@ -27,6 +31,17 @@ if "case3" not in st.session_state:
 
 if "page2_tab" not in st.session_state:
     st.session_state.page2_tab = "tab1"
+
+
+# Initialize session state variables
+if 'generated' not in st.session_state:
+    st.session_state['generated'] = []
+if 'past' not in st.session_state:
+    st.session_state['past'] = []
+if 'messages' not in st.session_state:
+    st.session_state['messages'] = [
+        {"role": "system", "content": "You are a helpful assistant."}
+    ]
 
 
 # Save function (placeholder)
@@ -59,6 +74,9 @@ def page_2_3_controller():
 
 def page2_tab_controller():
     st.session_state.page2_tab = "tab2"
+
+def page4_controller():
+    st.session_state.page = "Page 4"
 
 #########################################################
 # Page 1
@@ -204,7 +222,7 @@ def page3():
     
     st.button(
         "Start Debate",
-        on_click=page2_tab_controller
+        on_click=page4_controller
         )
     
 
@@ -219,6 +237,33 @@ def page3():
 #########################################################
 # Page4
 #########################################################
+
+config = dotenv_values(".env")
+
+openai.organization = config.get("OPENAI_ORGANIZATION")
+openai.api_key = config.get("OPENAI_API_KEY")
+
+# generate response
+def generate_response(prompt):
+    st.session_state['messages'].append({"role": "user", "content": prompt})
+
+    completion = openai.ChatCompletion.create(
+        model = "gpt-3.5-turbo",
+        messages = st.session_state['messages']
+    )
+    response = completion.choices[0].message.content
+    st.session_state['messages'].append({"role": "assistant", "content": response})
+
+    print(st.session_state['messages'])
+    # total_tokens = completion.usage.total_tokens
+    # prompt_tokens = completion.usage.prompt_tokens
+    # completion_tokens = completion.usage.completion_tokens
+
+    return response #, total_tokens, prompt_tokens, completion_tokens
+
+    #TODO 웅기형이 추가해놓은 history 세션 3가지 추가해놓기
+    #TODO 전체 유저가 발화한 시간 기록하기 -> 
+
 def page4():
 
     with st.sidebar:
@@ -229,6 +274,55 @@ def page4():
             height=100)
         st.sidebar.button("Ask")
 
+    debate_preset = "\n".join([
+        "Debate Rules: ",
+        "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
+        "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
+        "3) Answer logically with an introduction, body, and conclusion.\n", #add this one.
+        "4) If User take pro side, you take con side and vice versa.\n"
+        "5) You should comprehend user's chat and figure out whether the user take pro or con side.\n"
+        "6) Debate subject: " + st.session_state['topic']
+    ])
+    st.session_state['messages'] = [
+        {"role": "system", "content": debate_preset}
+    ]
+
+    # container for chat history
+    response_container = st.container()
+    # container for text box
+    container = st.container()
+
+    with container:
+        with st.form(key='my_form', clear_on_submit=True):
+            user_input = st.text_area("You:", key='input', height=100)
+            submit_buttom = st.form_submit_button(label='Send')
+        
+        if submit_buttom and user_input:
+            output = generate_response(user_input)
+            st.session_state['past'].append(user_input)
+            st.session_state['generated'].append(output)
+            # st.session_state['model_name'].append(model_name)
+            # st.session_state['total_tokens'].append(total_tokens)
+
+            # from https://openai.com/pricing#language-models
+            # if model_name == "GPT-3.5":
+            #     cost = total_tokens * 0.002 / 1000
+            # else:
+            #     cost = (prompt_tokens * 0.03 + completion_tokens * 0.06) / 1000
+
+            # st.session_state['cost'].append(cost)
+            # st.session_state['total_cost'] += cost
+
+    if st.session_state['generated']:
+        with response_container:
+            for i in range(len(st.session_state['generated'])):
+                message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
+                message(st.session_state["generated"][i], key=str(i))
+                # st.write(
+                #     f"Model used: {st.session_state['model_name'][i]}; Number of tokens: {st.session_state['total_tokens'][i]}; Cost: ${st.session_state['cost'][i]:.5f}"
+                #     )
+
+print(st.session_state)
 
 #########################################################
 # Page5
@@ -251,8 +345,9 @@ pages = {
     "Page 1": page1, # user_id와 openai_key를 입력받는 페이지
     "Page 2": page2, # 원하는 기능을 선택하는 페이지
     "Page 3": page3, # Total Debate
-    "Page 4": page4, # Evaluation Only
-    "Page 5": page5, # Analyzing Utterances
+    "Page 4": page4, # 
+    "Page 5": page5, # Evaluation Only
+    # "Page 6": page6, # Analyzing Utterances
 }
 
 selection = st.session_state.page
