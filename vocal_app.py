@@ -85,6 +85,12 @@ def page2_tab_controller():
 def page_5_6_controller():
     st.session_state.page = "Page 6"
 
+def page_2_7_controller():
+    st.session_state.page = "Page 7"
+
+def page_2_8_controller():
+    st.session_state.page = "Page 8"
+
 #########################################################
 # Page 1
 #########################################################
@@ -123,11 +129,19 @@ def page1():
 #########################################################
 def page2():
     st.header("Choose Option")
-    st.selectbox("Choose your option", ["Total Debate", "Evaluation Only", "Analyzing Utterances"])
+    option_result = st.selectbox("Choose your option", ["Total Debate", "Evaluation Only", "Analyzing Utterances"])
+
+    # add controller
+    if option_result == "Total Debate":
+        page_control_func = page_2_3_controller
+    elif option_result == "Evaluation Only":
+        page_control_func = page_2_7_controller
+    elif option_result == "Analyzing Utterances":
+        page_control_func = page_2_8_controller
 
     if st.button(
         label='Submit all information',
-        on_click=page_2_3_controller
+        on_click=page_control_func
         ):
         st.write('Information submitted successfully.')
         
@@ -306,23 +320,34 @@ def page6():
     # 각 단어의 빈도를 계산합니다.
     total_word_count = Counter(words)
     #total_word_count = len(user_history.split())
+    st.write("Total Word Count: ", total_word_count)
 
     # 평균 속도(단어/시간)
     user_debate_time = st.session_state.user_debate_time
     average_word_per_time = total_word_count / user_debate_time # 시간 단위보고 나중에 수정하기
+    st.write("Average Word Per Time: ", average_word_per_time)
 
     # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
     # 빈도가 높은 순서대로 단어를 정렬합니다.
     most_common_words = total_word_count.most_common()
-    # for word, count in most_common_words:
-    #     print(f"'{word}': {count}")
+    # 가장 빈도가 높은 10개의 단어를 출력합니다.
+    st.write("Most Common Words: ", most_common_words[:10])
 
     # 3. 발화 습관: 불필요한 언어습관(아, 음)
-    # 불필요한 언어습관을 정규표현식으로 찾아내기
     # whisper preprocesser에서 주면
     disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
     # Count the disfluency words
     disfluency_counts = {word: total_word_count[word] for word in disfluency_word_list}
+    st.write("Disfluency Counts: ", disfluency_counts)
+
+
+    ############################################
+    # Visualization
+    ############################################
+
+    # 이전에 기록된 값이 있다면, 그래프를 그립니다.
+    # 이전에 기록된 값이 없다면, 그래프를 그리지 않습니다.
+
    
 
 
@@ -336,7 +361,31 @@ def page6():
 # Page7
 #########################################################
 def page7():
-    pass
+    st.header('Debate Judgement')
+    # 유저와 봇의 대화 데이터가 세션에 남아있음
+    # st.session_state.debate_history
+
+    debate_themes = ['User-Bot', "User", "Bot"]
+
+    # 전체, 유저, 봇 세 가지 옵션 중에 선택
+    judgement_who = st.selectbox("Choose your debate theme", debate_themes)
+
+    if judgement_who == 'User-Bot':
+        debate_history = st.session_state.total_debate_history
+    elif judgement_who == 'User':
+        debate_history = st.session_state.user_debate_history
+    elif judgement_who == 'Bot':
+        debate_history = st.session_state.bot_debate_history
+
+    judgement_result = debate_judgement(debate_history)
+
+    st.write("Debate Judgement Result")
+    st.write(judgement_result)
+
+    st.button(
+        label='Move to Debate Dashboard',
+        on_click=page_5_6_controller
+        )
 
 
 #########################################################
