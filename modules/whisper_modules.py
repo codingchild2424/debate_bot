@@ -62,7 +62,6 @@ def debate_in_sound(audio):
     return response
 
 
-
 def transcribe(audio):
     os.rename(audio, audio + '.wav')
     file = open(audio + '.wav', "rb")
