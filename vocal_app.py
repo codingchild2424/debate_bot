@@ -3,6 +3,12 @@ import openai
 
 from dotenv import dotenv_values
 from streamlit_chat import message
+from modules.gpt_modules import gpt_call
+from langchain.prompts import PromptTemplate
+from bots.judgement_bot import debate_judgement
+import numpy as np
+from collections import Counter
+import re
 #import SessionState
 
 # Page Configuration
@@ -31,6 +37,21 @@ if "case3" not in st.session_state:
 
 if "page2_tab" not in st.session_state:
     st.session_state.page2_tab = "tab1"
+
+if "total_debate_history" not in st.session_state:
+    st.session_state.total_debate_history = ""
+
+if "user_debate_history" not in st.session_state:
+    st.session_state.user_debate_history = ""
+
+if "bot_debate_history" not in st.session_state:
+    st.session_state.bot_debate_history = ""
+
+if "user_debate_time" not in st.session_state:
+    st.session_state.user_debate_time = ""
+
+if "pros_and_cons" not in st.session_state:
+    st.session_state.pros_and_cons = ""
 
 
 # Initialize session state variables
@@ -77,6 +98,9 @@ def page2_tab_controller():
 
 def page4_controller():
     st.session_state.page = "Page 4"
+
+def page_5_6_controller():
+    st.session_state.page = "Page 6"
 
 #########################################################
 # Page 1
@@ -220,6 +244,8 @@ def page3():
         height=100
         )
     
+    st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
+    
     st.button(
         "Start Debate",
         on_click=page4_controller
@@ -325,17 +351,93 @@ def page4():
 print(st.session_state)
 
 #########################################################
-# Page5
+# Page5 - Total Debate Evaluation
 #########################################################
 def page5():
+    st.header('Debate Judgement')
+    # 유저와 봇의 대화 데이터가 세션에 남아있음
+    # st.session_state.debate_history
 
-    with st.sidebar:
-        st.sidebar.title('Ask to GPT')
-        st.sidebar.text_area(
-            label="Input text here", 
-            placeholder="Input text here",
-            height=100)
-        st.sidebar.button("Ask")
+    debate_themes = ['User-Bot', "User", "Bot"]
+
+    # 전체, 유저, 봇 세 가지 옵션 중에 선택
+    judgement_who = st.selectbox("Choose your debate theme", debate_themes)
+
+    if judgement_who == 'User-Bot':
+        debate_history = st.session_state.total_debate_history
+    elif judgement_who == 'User':
+        debate_history = st.session_state.user_debate_history
+    elif judgement_who == 'Bot':
+        debate_history = st.session_state.bot_debate_history
+
+    judgement_result = debate_judgement(debate_history)
+
+    st.write("Debate Judgement Result")
+    st.write(judgement_result)
+
+    st.button(
+        label='Move to Debate Dashboard',
+        on_click=page_5_6_controller
+        )
+
+#########################################################
+# Page6
+#########################################################
+
+def page6():
+
+    st.header('Debate Analysis')
+
+    # 유저의 history를 기반으로 발화량, 빈출 단어, 발화 습관 세 가지를 분석
+    user_history = st.session_state.user_debate_history
+
+    # 1. 발화량: 총 단어, 평균 속도(단어/시간)를 평균 발화량 혹은 참고 지표와 비교해 제시
+
+    # 총 단어
+    # 텍스트를 단어로 분할합니다.
+    words = user_history.split()
+    # 각 단어의 빈도를 계산합니다.
+    total_word_count = Counter(words)
+    #total_word_count = len(user_history.split())
+
+    # 평균 속도(단어/시간)
+    user_debate_time = st.session_state.user_debate_time
+    average_word_per_time = total_word_count / user_debate_time # 시간 단위보고 나중에 수정하기
+
+    # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
+    # 빈도가 높은 순서대로 단어를 정렬합니다.
+    most_common_words = total_word_count.most_common()
+    # for word, count in most_common_words:
+    #     print(f"'{word}': {count}")
+
+    # 3. 발화 습관: 불필요한 언어습관(아, 음)
+    # 불필요한 언어습관을 정규표현식으로 찾아내기
+    # whisper preprocesser에서 주면
+    disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
+    # Count the disfluency words
+    disfluency_counts = {word: total_word_count[word] for word in disfluency_word_list}
+   
+
+
+
+
+
+    pass
+
+
+#########################################################
+# Page7
+#########################################################
+def page7():
+    pass
+
+
+#########################################################
+# Page8
+#########################################################
+def page8():
+    pass
+
 
 
 #########################################################
@@ -345,9 +447,11 @@ pages = {
     "Page 1": page1, # user_id와 openai_key를 입력받는 페이지
     "Page 2": page2, # 원하는 기능을 선택하는 페이지
     "Page 3": page3, # Total Debate
-    "Page 4": page4, # 
-    "Page 5": page5, # Evaluation Only
-    # "Page 6": page6, # Analyzing Utterances
+    "Page 4": page4, # Evaluation Only
+    "Page 5": page5, # Analyzing Utterances
+    "Page 6": page6,
+    "Page 7": page7,
+    "Page 8": page8
 }
 
 selection = st.session_state.page
