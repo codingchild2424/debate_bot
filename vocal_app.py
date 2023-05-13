@@ -42,13 +42,13 @@ if "total_debate_history" not in st.session_state:
     st.session_state.total_debate_history = ""
 
 if "user_debate_history" not in st.session_state:
-    st.session_state.user_debate_history = ""
+    st.session_state.user_debate_history = []
 
 if "bot_debate_history" not in st.session_state:
-    st.session_state.bot_debate_history = ""
+    st.session_state.bot_debate_history = []
 
 if "user_debate_time" not in st.session_state:
-    st.session_state.user_debate_time = ""
+    st.session_state.user_debate_time = []
 
 if "pros_and_cons" not in st.session_state:
     st.session_state.pros_and_cons = ""
@@ -269,6 +269,16 @@ config = dotenv_values(".env")
 openai.organization = config.get("OPENAI_ORGANIZATION")
 openai.api_key = config.get("OPENAI_API_KEY")
 
+def ask_gpt(promt):
+    completion = openai.ChatCompletion.create(
+        model = "gpt-3.5-turbo",
+        messages = {
+            "role": "assistant",
+            "content": promt 
+        }
+    )
+    return completion.choices[0].message.content
+
 # generate response
 def generate_response(prompt):
     st.session_state['messages'].append({"role": "user", "content": prompt})
@@ -280,7 +290,7 @@ def generate_response(prompt):
     response = completion.choices[0].message.content
     st.session_state['messages'].append({"role": "assistant", "content": response})
 
-    print(st.session_state['messages'])
+    # print(st.session_state['messages'])
     # total_tokens = completion.usage.total_tokens
     # prompt_tokens = completion.usage.prompt_tokens
     # completion_tokens = completion.usage.completion_tokens
@@ -288,30 +298,54 @@ def generate_response(prompt):
     return response #, total_tokens, prompt_tokens, completion_tokens
 
     #TODO 웅기형이 추가해놓은 history 세션 3가지 추가해놓기
-    #TODO 전체 유저가 발화한 시간 기록하기 -> 
+    #TODO 전체 유저가 발화한 시간 기록하기 -> 세션에 저장
 
 def page4():
 
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
-        st.sidebar.text_area(
+        user_input = st.sidebar.text_area(
             label="Input text here", 
             placeholder="Input text here",
             height=100)
-        st.sidebar.button("Ask")
+        output = st.sidebar.button("Ask")
+        if output:
+            result = gpt_call(user_input)
+        else:
+            result = ""
+
+        st.sidebar.text_area(
+            label="Answer in here", 
+            placeholder="(Answer)",
+            value=result,
+            height=150)
 
     debate_preset = "\n".join([
         "Debate Rules: ",
         "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
         "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
-        "3) Answer logically with an introduction, body, and conclusion.\n", #add this one.
-        "4) If User take pro side, you take con side and vice versa.\n"
-        "5) You should comprehend user's chat and figure out whether the user take pro or con side.\n"
-        "6) Debate subject: " + st.session_state['topic']
+        "3) Answer logically with an introduction, body, and conclusion.", #add this one.
+        "4) Your role : " + st.session_state["pros_and_cons"] + "side debator"
+        "5) Debate subject: " + st.session_state['topic']
     ])
+    first_prompt = "Now we're going to start. Summarize the subject and your role. And ask user ready to begin."
     st.session_state['messages'] = [
         {"role": "system", "content": debate_preset}
     ]
+
+    completion = openai.ChatCompletion.create(
+        model = "gpt-3.5-turbo",
+        messages = [
+            {
+                "role": "system",
+                "content": debate_preset + "\n" + first_prompt
+             }
+        ]
+    )
+
+    response = completion.choices[0].message.content
+    st.session_state['messages'].append({"role": "assistant", "content": response})
+    st.session_state['generated'].append(response)
 
     # container for chat history
     response_container = st.container()
@@ -325,6 +359,14 @@ def page4():
         
         if submit_buttom and user_input:
             output = generate_response(user_input)
+            st.session_state['user_debate_history'].append(user_input)
+            st.session_state['bot_debate_history'].append(output)
+            st.session_state['total_debate_history'].append(
+                {
+                    "user" + str(len(st.session_state['user_debate_history'])): user_input,
+                    "bot" + str(len(st.session_state['bot_debate_history'])): output,
+                }
+            )
             st.session_state['past'].append(user_input)
             st.session_state['generated'].append(output)
             # st.session_state['model_name'].append(model_name)
@@ -341,12 +383,14 @@ def page4():
 
     if st.session_state['generated']:
         with response_container:
-            for i in range(len(st.session_state['generated'])):
+            message(st.session_state["generated"][0], key=str(0))
+            for i in range(len(st.session_state['past'])):
                 message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
-                message(st.session_state["generated"][i], key=str(i))
+                message(st.session_state["generated"][i + 1], key=str(i + 1))
                 # st.write(
                 #     f"Model used: {st.session_state['model_name'][i]}; Number of tokens: {st.session_state['total_tokens'][i]}; Cost: ${st.session_state['cost'][i]:.5f}"
                 #     )
+
 
 print(st.session_state)
 
@@ -416,11 +460,6 @@ def page6():
     disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
     # Count the disfluency words
     disfluency_counts = {word: total_word_count[word] for word in disfluency_word_list}
-   
-
-
-
-
 
     pass
 
