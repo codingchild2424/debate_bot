@@ -24,6 +24,10 @@ def debate(audio):
     # user_words
     user_prompt = openai.Audio.transcribe("whisper-1", file).text
 
+    print("**************************************")
+    print("user_audio transcription", user_prompt)
+    print("**************************************")
+
     # 일단 테스트를 위해 고정함
     debate_subject = "In 2050, AI robots are able to replicate the appearance, conversation, and reaction to emotions of human beings. However, their intelligence still does not allow them to sense emotions and feelings such as pain, happiness, joy, and etc."
 

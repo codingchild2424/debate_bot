@@ -1,4 +1,7 @@
 import streamlit as st
+from modules.gpt_modules import gpt_call
+from langchain.prompts import PromptTemplate
+from bots.judgement_bot import debate_judgement
 #import SessionState
 
 # Page Configuration
@@ -27,6 +30,15 @@ if "case3" not in st.session_state:
 
 if "page2_tab" not in st.session_state:
     st.session_state.page2_tab = "tab1"
+
+if "total_debate_history" not in st.session_state:
+    st.session_state.total_debate_history = ""
+
+if "user_debate_history" not in st.session_state:
+    st.session_state.user_debate_history = ""
+
+if "bot_debate_history" not in st.session_state:
+    st.session_state.bot_debate_history = ""
 
 
 # Save function (placeholder)
@@ -59,6 +71,10 @@ def page_2_3_controller():
 
 def page2_tab_controller():
     st.session_state.page2_tab = "tab2"
+
+
+def page_5_6_controller():
+    st.session_state.page = "Page 6"
 
 #########################################################
 # Page 1
@@ -231,17 +247,55 @@ def page4():
 
 
 #########################################################
-# Page5
+# Page5 - Total Debate Evaluation
 #########################################################
 def page5():
+    st.header('Debate Judgement')
+    # 유저와 봇의 대화 데이터가 세션에 남아있음
+    # st.session_state.debate_history
 
-    with st.sidebar:
-        st.sidebar.title('Ask to GPT')
-        st.sidebar.text_area(
-            label="Input text here", 
-            placeholder="Input text here",
-            height=100)
-        st.sidebar.button("Ask")
+    debate_themes = ['User-Bot', "User", "Bot"]
+
+    # 전체, 유저, 봇 세 가지 옵션 중에 선택
+    judgement_who = st.selectbox("Choose your debate theme", debate_themes)
+
+    if judgement_who == 'User-Bot':
+        debate_history = st.session_state.total_debate_history
+    elif judgement_who == 'User':
+        debate_history = st.session_state.user_debate_history
+    elif judgement_who == 'Bot':
+        debate_history = st.session_state.bot_debate_history
+
+    judgement_result = debate_judgement(debate_history)
+
+    st.write("Debate Judgement Result")
+    st.write(judgement_result)
+
+    st.button(
+        label='Move to Debate Dashboard',
+        on_click=page_5_6_controller
+        )
+
+#########################################################
+# Page6
+#########################################################
+def page6():
+    pass
+
+
+#########################################################
+# Page7
+#########################################################
+def page7():
+    pass
+
+
+#########################################################
+# Page8
+#########################################################
+def page8():
+    pass
+
 
 
 #########################################################
@@ -253,6 +307,9 @@ pages = {
     "Page 3": page3, # Total Debate
     "Page 4": page4, # Evaluation Only
     "Page 5": page5, # Analyzing Utterances
+    "Page 6": page6,
+    "Page 7": page7,
+    "Page 8": page8
 }
 
 selection = st.session_state.page
