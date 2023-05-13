@@ -6,3 +6,4 @@ python-dotenv
 gradio
 git+https://github.com/openai/whisper.git
 pymilvus
+streamlit-audiorecorder

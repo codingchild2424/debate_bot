@@ -63,10 +63,10 @@ def debate_in_sound(audio):
 
 
 def transcribe(audio):
-    os.rename(audio, audio + '.wav')
-    file = open(audio + '.wav', "rb")
 
-    result = openai.Audio.transcribe("whisper-1", file).text
+    audio_file= open("./audio.mp3", "rb")
+
+    result = openai.Audio.transcribe("whisper-1", audio_file).text
 
     return result
 
