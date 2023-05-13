@@ -1,5 +1,3 @@
-import whisper
-import gradio as gr
 from dotenv import dotenv_values
 import openai
 import os
@@ -17,7 +15,7 @@ config = dotenv_values(".env")
 openai.organization = config.get('OPENAI_ORGANIZATION')
 openai.api_key = config.get('OPENAI_API_KEY')
 
-def debate(audio):
+def debate_in_sound(audio):
     os.rename(audio, audio + '.wav')
     file = open(audio + '.wav', "rb")
 
@@ -73,12 +71,13 @@ def transcribe(audio):
 
     return result
 
-gr.Interface(
-    title = 'Whisper Audio to Text with Speaker Recognition', 
-    fn=debate,
-    inputs=[
-        gr.inputs.Audio(source="microphone", type="filepath"),
-        #gr.inputs.Number(default=2, label="Number of Speakers")
-    ],
-    outputs="text"
-  ).launch()
+
+# gr.Interface(
+#     title = 'Whisper Audio to Text with Speaker Recognition', 
+#     fn=debate,
+#     inputs=[
+#         gr.inputs.Audio(source="microphone", type="filepath"),
+#         #gr.inputs.Number(default=2, label="Number of Speakers")
+#     ],
+#     outputs="text"
+#   ).launch()
