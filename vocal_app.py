@@ -298,14 +298,8 @@ def generate_response(prompt):
     response = completion.choices[0].message.content
     st.session_state['messages'].append({"role": "assistant", "content": response})
 
-    # print(st.session_state['messages'])
-    # total_tokens = completion.usage.total_tokens
-    # prompt_tokens = completion.usage.prompt_tokens
-    # completion_tokens = completion.usage.completion_tokens
+    return response
 
-    return response #, total_tokens, prompt_tokens, completion_tokens
-
-    #TODO 웅기형이 추가해놓은 history 세션 3가지 추가해놓기
     #TODO 전체 유저가 발화한 시간 기록하기 -> 세션에 저장
 
 def page4():
@@ -361,6 +355,8 @@ def page4():
     container = st.container()
 
     with container:
+        #TODO (웅기형) : STT 붙이는 부분
+        #TODO user_input에 음성인식된 text를 전달해주면 됨
         with st.form(key='my_form', clear_on_submit=True):
             user_input = st.text_area("You:", key='input', height=100)
             submit_buttom = st.form_submit_button(label='Send')
@@ -377,17 +373,6 @@ def page4():
             )
             st.session_state['past'].append(user_input)
             st.session_state['generated'].append(output)
-            # st.session_state['model_name'].append(model_name)
-            # st.session_state['total_tokens'].append(total_tokens)
-
-            # from https://openai.com/pricing#language-models
-            # if model_name == "GPT-3.5":
-            #     cost = total_tokens * 0.002 / 1000
-            # else:
-            #     cost = (prompt_tokens * 0.03 + completion_tokens * 0.06) / 1000
-
-            # st.session_state['cost'].append(cost)
-            # st.session_state['total_cost'] += cost
 
     if st.session_state['generated']:
         with response_container:
@@ -395,9 +380,6 @@ def page4():
             for i in range(len(st.session_state['past'])):
                 message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
                 message(st.session_state["generated"][i + 1], key=str(i + 1))
-                # st.write(
-                #     f"Model used: {st.session_state['model_name'][i]}; Number of tokens: {st.session_state['total_tokens'][i]}; Cost: ${st.session_state['cost'][i]:.5f}"
-                #     )
 
 
 print(st.session_state)
