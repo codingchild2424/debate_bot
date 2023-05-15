@@ -1,19 +1,16 @@
 import streamlit as st
-import openai
 
-from dotenv import dotenv_values
+from gtts import gTTS
+from collections import Counter
 from streamlit_chat import message
 from modules.gpt_modules import gpt_call
-from langchain.prompts import PromptTemplate
 from bots.judgement_bot import debate_judgement
-import numpy as np
-from collections import Counter
-import re
-#import SessionState
+
 
 # Page Configuration
 st.set_page_config(page_title="Streamlit App")
 
+# Initialize session state variables
 if "page" not in st.session_state:
     st.session_state.page = "Page 1"
 
@@ -39,7 +36,7 @@ if "page2_tab" not in st.session_state:
     st.session_state.page2_tab = "tab1"
 
 if "total_debate_history" not in st.session_state:
-    st.session_state.total_debate_history = ""
+    st.session_state.total_debate_history = []
 
 if "user_debate_history" not in st.session_state:
     st.session_state.user_debate_history = []
@@ -48,17 +45,17 @@ if "bot_debate_history" not in st.session_state:
     st.session_state.bot_debate_history = []
 
 if "user_debate_time" not in st.session_state:
-    st.session_state.user_debate_time = []
+    st.session_state.user_debate_time = ""
 
 if "pros_and_cons" not in st.session_state:
     st.session_state.pros_and_cons = ""
 
-
-# Initialize session state variables
 if 'generated' not in st.session_state:
     st.session_state['generated'] = []
+
 if 'past' not in st.session_state:
     st.session_state['past'] = []
+
 if 'messages' not in st.session_state:
     st.session_state['messages'] = [
         {"role": "system", "content": "You are a helpful assistant."}
@@ -272,35 +269,12 @@ def page3():
 # Page4
 #########################################################
 
-config = dotenv_values(".env")
-
-openai.organization = config.get("OPENAI_ORGANIZATION")
-openai.api_key = config.get("OPENAI_API_KEY")
-
-def ask_gpt(promt):
-    completion = openai.ChatCompletion.create(
-        model = "gpt-3.5-turbo",
-        messages = {
-            "role": "assistant",
-            "content": promt 
-        }
-    )
-    return completion.choices[0].message.content
-
 # generate response
 def generate_response(prompt):
     st.session_state['messages'].append({"role": "user", "content": prompt})
-
-    completion = openai.ChatCompletion.create(
-        model = "gpt-3.5-turbo",
-        messages = st.session_state['messages']
-    )
-    response = completion.choices[0].message.content
+    response = gpt_call(prompt)
     st.session_state['messages'].append({"role": "assistant", "content": response})
-
     return response
-
-    #TODO 전체 유저가 발화한 시간 기록하기 -> 세션에 저장
 
 def page4():
 
@@ -335,19 +309,10 @@ def page4():
         {"role": "system", "content": debate_preset}
     ]
 
-    completion = openai.ChatCompletion.create(
-        model = "gpt-3.5-turbo",
-        messages = [
-            {
-                "role": "system",
-                "content": debate_preset + "\n" + first_prompt
-             }
-        ]
-    )
-
-    response = completion.choices[0].message.content
+    response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
     st.session_state['messages'].append({"role": "assistant", "content": response})
     st.session_state['generated'].append(response)
+
 
     # container for chat history
     response_container = st.container()
@@ -379,10 +344,20 @@ def page4():
             message(st.session_state["generated"][0], key=str(0))
             for i in range(len(st.session_state['past'])):
                 message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
+                
+                text_to_speech = gTTS(text=st.session_state["generated"][i + 1], lang='en', slow=False)
+                text_to_speech.save(f'audio/test_gtts_{str(i)}.mp3')
+                audio_file = open(f'audio/test_gtts_{str(i)}.mp3', 'rb')
+                audio_bytes = audio_file.read()
+                st.audio(audio_bytes, format='audio/ogg')
+
                 message(st.session_state["generated"][i + 1], key=str(i + 1))
 
+    #TODO 전체 유저가 발화한 시간 기록하기 -> 세션에 저장
 
+print("#"*50)
 print(st.session_state)
+print("#"*50)
 
 #########################################################
 # Page5 - Total Debate Evaluation
