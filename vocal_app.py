@@ -6,6 +6,20 @@ from streamlit_chat import message
 from modules.gpt_modules import gpt_call
 from bots.judgement_bot import debate_judgement
 
+from langchain.prompts import PromptTemplate
+from bots.judgement_bot import debate_judgement
+from collections import Counter
+from audiorecorder import audiorecorder
+
+# modules
+from modules.gpt_modules import gpt_call
+#from modules.whisper_modules import transcribe
+
+config = dotenv_values(".env")
+
+openai.organization = config.get('OPENAI_ORGANIZATION')
+openai.api_key = config.get('OPENAI_API_KEY')
+
 
 # Page Configuration
 st.set_page_config(page_title="Streamlit App")
@@ -321,7 +335,18 @@ def page4():
 
     with container:
         #TODO (웅기형) : STT 붙이는 부분
-        #TODO user_input에 음성인식된 text를 전달해주면 됨
+        audio = audiorecorder("Click to record", "Recording...")
+
+        if audio:
+
+            wav_file = open("audio.wav", "wb")
+            wav_file.write(audio.tobytes())
+
+            audio_file= open("audio.wav", "rb")
+
+            whisper_result = openai.Audio.transcribe("whisper-1", audio_file).text
+        
+
         with st.form(key='my_form', clear_on_submit=True):
             user_input = st.text_area("You:", key='input', height=100)
             submit_buttom = st.form_submit_button(label='Send')
