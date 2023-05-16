@@ -77,7 +77,7 @@ if "debate_time" not in st.session_state:
     st.session_state.debate_time = 0
 
 if "pre_audio" not in st.session_state:
-    st.session_state.pre_audio = np.ndarray(())
+    st.session_state.pre_audio = np.array([])
 
 
 # Save function (placeholder)
@@ -111,7 +111,7 @@ def page_2_3_controller():
 def page2_tab_controller():
     st.session_state.page2_tab = "tab2"
 
-def page4_controller():
+def page_3_4_controller():
     st.session_state.page = "Page 4"
 
 def page_4_5_controller():
@@ -288,7 +288,8 @@ def page3():
 
     if start:
         if validate_case(case_error_message):
-            page4_controller()
+            page_3_4_controller()
+            st.experimental_rerun()
 
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
@@ -394,7 +395,7 @@ def page4():
             # record voice
             audio = audiorecorder("Click to record", "Recording...")
             if np.array_equal(st.session_state['pre_audio'], audio):
-                audio = np.ndarray(())
+                audio = np.array([])
             print("audio", audio)
 
             #user_input = st.text_area("You:", key='input', height=100)
@@ -429,11 +430,9 @@ def page4():
             audio_bytes = audio_file.read()
             st.audio(audio_bytes, format='audio/ogg')
 
-    if st.button(
-            label="Next",
-            on_click=page_4_5_controller
-            ):
-            st.write('Information submitted successfully.')
+    if st.button(label="Next",
+                 on_click=page_4_5_controller):
+        st.write('Information submitted successfully.')
 
 print("#"*50)
 print(st.session_state)
@@ -461,25 +460,25 @@ def page5():
         # 전체, 유저, 봇 세 가지 옵션 중에 선택
         judgement_who = st.selectbox("Choose your debate theme", debate_themes)
 
-        judgement_result = ""
-        if judgement_result == "":
-            st.write("Wait for judgement result...")
+        with st.spinner('Wait for judgement result...'):
+            judgement_result = ""
 
-        user_debate_history = "".join(
-            st.session_state.user_debate_history
-        )
-        bot_debate_history = "".join(
-            st.session_state.bot_debate_history
-        )
-
-        judgement_result = debate_judgement(
-            judgement_who, 
-            user_debate_history, 
-            bot_debate_history
+            user_debate_history = "".join(
+                st.session_state.user_debate_history
+            )
+            bot_debate_history = "".join(
+                st.session_state.bot_debate_history
             )
 
-        st.write("Debate Judgement Result")
-        st.write(judgement_result)
+            judgement_result = debate_judgement(
+                judgement_who, 
+                user_debate_history, 
+                bot_debate_history
+                )
+
+            st.write("Debate Judgement Result")
+            st.write(judgement_result)
+        st.success('Done!')
 
     with tab2:
         st.header('Debate Analysis')
