@@ -265,38 +265,63 @@ def page3():
     st.write("2. Select a topic")
     st.session_state.topic = st.selectbox("Choose your topic", topic_list)
 
-    st.write("3. Write 3 cases here (Each case should be consisted of opinion, reasoning, and example).")
-    st.session_state.case1 = st.text_area(
+    st.write("3. Write 3 cases")
+
+    case1 = st.text_area(
         label="Case 1",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
         )
-    st.session_state.case2 = st.text_area(
+    case2 = st.text_area(
         label="Case 2",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
-        )
-    st.session_state.case3 = st.text_area(
+    )
+    case3 = st.text_area(
         label="Case 3",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
-        )
-    
+    )
+    case_error_message = st.empty()
     st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
     
-    st.button(
-        "Start Debate",
-        on_click=page4_controller
-        )
-    
+    start = st.button(label="Start Debate")
+
+    def validate_case(error_message):
+        if not case1 or not case2 or not case3:
+            case_error_message.error("Please enter above all", icon="🚨")
+        else:
+            st.session_state.case1 = case1
+            st.session_state.case2 = case2
+            st.session_state.case3 = case3
+            page4_controller()
+
+    if start:
+        validate_case(case_error_message)
+
 
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
-        st.sidebar.text_area(
-            label="Input text here", 
+        user_input = st.sidebar.text_area(
+            label="Question", 
             placeholder="Input text here",
             height=100)
-        st.sidebar.button("Ask")
+        output = st.sidebar.button("Ask")
+        input_error_message = st.empty()
+        if output:
+            if not user_input:
+                input_error_message.error("Please enter your question")
+                result = ""
+            else:
+                result = gpt_call(user_input)
+        else:
+            result = ""
+
+        st.sidebar.text_area(
+            label="Answer", 
+            placeholder="(Answer will be shown here)",
+            value=result,
+            height=150)
 
 #########################################################
 # Page4
@@ -317,18 +342,23 @@ def page4():
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
         user_input = st.sidebar.text_area(
-            label="Input text here", 
+            label="Question", 
             placeholder="Input text here",
             height=100)
         output = st.sidebar.button("Ask")
+        input_error_message = st.empty()
         if output:
-            result = gpt_call(user_input)
+            if not user_input:
+                input_error_message.error("Please enter your question")
+                result = ""
+            else:
+                result = gpt_call(user_input)
         else:
             result = ""
 
         st.sidebar.text_area(
-            label="Answer in here", 
-            placeholder="(Answer)",
+            label="Answer", 
+            placeholder="(Answer will be shown here)",
             value=result,
             height=150)
 
@@ -356,8 +386,6 @@ def page4():
     container = st.container()
 
     with container:
-        #TODO (웅기형) : STT 붙이는 부분
-
         with st.form(key='my_form', clear_on_submit=True):
             audio = audiorecorder("Click to record", "Recording...")
 
