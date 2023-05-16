@@ -9,6 +9,9 @@ from bots.judgement_bot import debate_judgement
 import numpy as np
 from collections import Counter
 import re
+import math
+import time
+
 from audiorecorder import audiorecorder
 
 config = dotenv_values(".env")
@@ -51,7 +54,7 @@ if "page2_tab" not in st.session_state:
     st.session_state.page2_tab = "tab1"
 
 if "total_debate_history" not in st.session_state:
-    st.session_state.total_debate_history = ""
+    st.session_state.total_debate_history = []
 
 if "user_debate_history" not in st.session_state:
     st.session_state.user_debate_history = []
@@ -64,6 +67,16 @@ if "user_debate_time" not in st.session_state:
 
 if "pros_and_cons" not in st.session_state:
     st.session_state.pros_and_cons = ""
+
+# Time session
+if "start_time" not in st.session_state:
+    st.session_state.start_time = time.time()
+
+if "end_time" not in st.session_state:
+    st.session_state.end_time = time.time()
+
+if "debate_time" not in st.session_state:
+    st.session_state.debate_time = 0
 
 
 # Initialize session state variables
@@ -111,7 +124,13 @@ def page2_tab_controller():
 def page4_controller():
     st.session_state.page = "Page 4"
 
+def page_4_5_controller():
+    st.session_state.page = "Page 5"
+
 def page_5_6_controller():
+    st.session_state.page = "Page 6"
+
+def page_2_6_controller():
     st.session_state.page = "Page 6"
 
 #########################################################
@@ -152,15 +171,13 @@ def page1():
 #########################################################
 def page2():
     st.header("Choose Option")
-    option_result = st.selectbox("Choose your option", ["Total Debate", "Evaluation Only", "Analyzing Utterances"])
+    option_result = st.selectbox("Choose your option", ["Total Debate", "Evaluation Only & Analyzing Utterances"])
 
     # add controller
     if option_result == "Total Debate":
         page_control_func = page_2_3_controller
-    elif option_result == "Evaluation Only":
-        page_control_func = page_2_7_controller
-    elif option_result == "Analyzing Utterances":
-        page_control_func = page_2_8_controller
+    elif option_result == "Evaluation Only & Analyzing Utterances":
+        page_control_func = page_2_6_controller
 
     if st.button(
         label='Submit all information',
@@ -316,6 +333,9 @@ def generate_response(prompt):
 
 def page4():
 
+    # time
+    st.session_state.start_time = time.time()
+
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
         user_input = st.sidebar.text_area(
@@ -368,23 +388,30 @@ def page4():
 
     with container:
         #TODO (웅기형) : STT 붙이는 부분
-        audio = audiorecorder("Click to record", "Recording...")
-
-        if audio:
-
-            wav_file = open("audio.wav", "wb")
-            wav_file.write(audio.tobytes())
-
-            audio_file= open("audio.wav", "rb")
-
-            whisper_result = openai.Audio.transcribe("whisper-1", audio_file).text
-        
 
         with st.form(key='my_form', clear_on_submit=True):
-            user_input = st.text_area("You:", key='input', height=100)
+            audio = audiorecorder("Click to record", "Recording...")
+
+            print("audio", audio)
+
+            if audio != []:
+                user_input_exist=True
+                wav_file = open("audio.wav", "wb")
+                wav_file.write(audio.tobytes())
+
+                audio_file= open("audio.wav", "rb")
+
+                user_input = openai.Audio.transcribe("whisper-1", audio_file).text
+            else:
+                user_input_exist=False
+                user_input = "Nothing to transcribe"
+                print("Nothing to transcribe")
+
+            #user_input = st.text_area("You:", key='input', height=100)
             submit_buttom = st.form_submit_button(label='Send')
         
-        if submit_buttom and user_input:
+        #if submit_buttom and user_input:
+        if submit_buttom and user_input_exist:
             output = generate_response(user_input)
             st.session_state['user_debate_history'].append(user_input)
             st.session_state['bot_debate_history'].append(output)
@@ -404,6 +431,11 @@ def page4():
                 message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
                 message(st.session_state["generated"][i + 1], key=str(i + 1))
 
+    if st.button(
+            label="Next",
+            on_click=page_4_5_controller
+            ):
+            st.write('Information submitted successfully.')
 
 print(st.session_state)
 
@@ -412,6 +444,10 @@ print(st.session_state)
 #########################################################
 def page5():
 
+    # end time
+    st.session_state.end_time = time.time()
+    st.session_state.debate_time = st.session_state.end_time - st.session_state.start_time
+
     # st.tab
     st.header('Total Debate Evaluation')
 
@@ -425,14 +461,22 @@ def page5():
         # 전체, 유저, 봇 세 가지 옵션 중에 선택
         judgement_who = st.selectbox("Choose your debate theme", debate_themes)
 
-        if judgement_who == 'User-Bot':
-            debate_history = st.session_state.total_debate_history
-        elif judgement_who == 'User':
-            debate_history = st.session_state.user_debate_history
-        elif judgement_who == 'Bot':
-            debate_history = st.session_state.bot_debate_history
+        judgement_result = ""
+        if judgement_result == "":
+            st.write("Wait for judgement result...")
 
-        judgement_result = debate_judgement(debate_history)
+        user_debate_history = "".join(
+            st.session_state.user_debate_history
+        )
+        bot_debate_history = "".join(
+            st.session_state.bot_debate_history
+        )
+
+        judgement_result = debate_judgement(
+            judgement_who, 
+            user_debate_history, 
+            bot_debate_history
+            )
 
         st.write("Debate Judgement Result")
         st.write(judgement_result)
@@ -447,33 +491,33 @@ def page5():
 
         # 총 단어
         # 텍스트를 단어로 분할합니다.
-        words = user_history.split()
         # 각 단어의 빈도를 계산합니다.
-        total_word_count = Counter(words)
+        total_word_count = len(user_history)
         #total_word_count = len(user_history.split())
         st.write("Total Word Count: ", total_word_count)
 
         # 평균 속도(단어/시간)
-        user_debate_time = st.session_state.user_debate_time
-        average_word_per_time = total_word_count / user_debate_time # 시간 단위보고 나중에 수정하기
+        #user_debate_time = st.session_state.user_debate_time
+        average_word_per_time = total_word_count / st.session_state.debate_time # 시간 단위보고 나중에 수정하기
         st.write("Average Word Per Time: ", average_word_per_time)
 
         # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
-        # 빈도가 높은 순서대로 단어를 정렬합니다.
-        most_common_words = total_word_count.most_common()
-        # 가장 빈도가 높은 10개의 단어를 출력합니다.
-        st.write("Most Common Words: ", most_common_words[:10])
+        # 빈도 계산
+        frequency = Counter(user_history)
+        # 가장 빈도가 높은 데이터 출력
+        most_common_data = frequency.most_common(10)
+        print(most_common_data)
+        st.write("Most Common Words: ", most_common_data)
 
         # 3. 발화 습관: 불필요한 언어습관(아, 음)
         # whisper preprocesser에서 주면
         disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
         # Count the disfluency words
-        disfluency_counts = {word: total_word_count[word] for word in disfluency_word_list}
+        disfluency_counts = sum(user_word in disfluency_word_list for user_word in user_history)
         st.write("Disfluency Counts: ", disfluency_counts)
 
         # 유저와 봇의 대화 데이터가 세션에 남아있음
         # st.session_state.debate_history
-
     
 
 #########################################################
@@ -482,8 +526,10 @@ def page5():
 
 def page6():
 
-    # 여기서 User의 과거 기록을 검색할 수 있게 해야 함
-    
+    # end time
+    st.session_state.end_time = time.time()
+    st.session_state.debate_time = st.session_state.end_time - st.session_state.start_time
+
     # st.tab
     st.header('Total Debate Evaluation')
 
@@ -497,14 +543,22 @@ def page6():
         # 전체, 유저, 봇 세 가지 옵션 중에 선택
         judgement_who = st.selectbox("Choose your debate theme", debate_themes)
 
-        if judgement_who == 'User-Bot':
-            debate_history = st.session_state.total_debate_history
-        elif judgement_who == 'User':
-            debate_history = st.session_state.user_debate_history
-        elif judgement_who == 'Bot':
-            debate_history = st.session_state.bot_debate_history
+        judgement_result = ""
+        if judgement_result == "":
+            st.write("Wait for judgement result...")
 
-        judgement_result = debate_judgement(debate_history)
+        user_debate_history = "".join(
+            st.session_state.user_debate_history
+        )
+        bot_debate_history = "".join(
+            st.session_state.bot_debate_history
+        )
+
+        judgement_result = debate_judgement(
+            judgement_who, 
+            user_debate_history, 
+            bot_debate_history
+            )
 
         st.write("Debate Judgement Result")
         st.write(judgement_result)
@@ -519,33 +573,33 @@ def page6():
 
         # 총 단어
         # 텍스트를 단어로 분할합니다.
-        words = user_history.split()
         # 각 단어의 빈도를 계산합니다.
-        total_word_count = Counter(words)
+        total_word_count = len(user_history)
         #total_word_count = len(user_history.split())
         st.write("Total Word Count: ", total_word_count)
 
         # 평균 속도(단어/시간)
-        user_debate_time = st.session_state.user_debate_time
-        average_word_per_time = total_word_count / user_debate_time # 시간 단위보고 나중에 수정하기
+        #user_debate_time = st.session_state.user_debate_time
+        average_word_per_time = total_word_count / st.session_state.debate_time # 시간 단위보고 나중에 수정하기
         st.write("Average Word Per Time: ", average_word_per_time)
 
         # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
-        # 빈도가 높은 순서대로 단어를 정렬합니다.
-        most_common_words = total_word_count.most_common()
-        # 가장 빈도가 높은 10개의 단어를 출력합니다.
-        st.write("Most Common Words: ", most_common_words[:10])
+        # 빈도 계산
+        frequency = Counter(user_history)
+        # 가장 빈도가 높은 데이터 출력
+        most_common_data = frequency.most_common(10)
+        print(most_common_data)
+        st.write("Most Common Words: ", most_common_data)
 
         # 3. 발화 습관: 불필요한 언어습관(아, 음)
         # whisper preprocesser에서 주면
         disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
         # Count the disfluency words
-        disfluency_counts = {word: total_word_count[word] for word in disfluency_word_list}
+        disfluency_counts = sum(user_word in disfluency_word_list for user_word in user_history)
         st.write("Disfluency Counts: ", disfluency_counts)
 
         # 유저와 봇의 대화 데이터가 세션에 남아있음
         # st.session_state.debate_history
-
 
     ############################################
     # Visualization
