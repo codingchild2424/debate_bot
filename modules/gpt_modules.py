@@ -17,3 +17,13 @@ def gpt_call(prompt, role="user"):
     output_text = response["choices"][0]["message"]["content"]
 
     return output_text
+
+
+def gpt_call_context(messages):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+    )
+    output_text = response["choices"][0]["message"]["content"]
+
+    return output_text
