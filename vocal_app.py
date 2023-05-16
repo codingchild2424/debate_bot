@@ -1,4 +1,5 @@
 import streamlit as st
+import numpy as np
 import openai
 
 from gtts import gTTS
@@ -8,14 +9,12 @@ from streamlit_chat import message
 from dotenv import dotenv_values
 from bots.judgement_bot import debate_judgement
 from collections import Counter
-import re
-import math
 import time
 
 from audiorecorder import audiorecorder
 
 # modules
-from modules.gpt_modules import gpt_call
+from modules.gpt_modules import gpt_call, gpt_call_context
 #from modules.whisper_modules import transcribe
 
 config = dotenv_values(".env")
@@ -77,18 +76,8 @@ if "end_time" not in st.session_state:
 if "debate_time" not in st.session_state:
     st.session_state.debate_time = 0
 
-
-# Initialize session state variables
-if 'generated' not in st.session_state:
-    st.session_state['generated'] = []
-
-if 'past' not in st.session_state:
-    st.session_state['past'] = []
-
-if 'messages' not in st.session_state:
-    st.session_state['messages'] = [
-        {"role": "system", "content": "You are a helpful assistant."}
-    ]
+if "pre_audio" not in st.session_state:
+    st.session_state.pre_audio = np.ndarray(())
 
 
 # Save function (placeholder)
@@ -289,16 +278,17 @@ def page3():
 
     def validate_case(error_message):
         if not case1 or not case2 or not case3:
-            case_error_message.error("Please enter above all", icon="🚨")
+            case_error_message.error("Please fill out above all", icon="🚨")
+            return False
         else:
             st.session_state.case1 = case1
             st.session_state.case2 = case2
             st.session_state.case3 = case3
-            page4_controller()
+            return True
 
     if start:
-        validate_case(case_error_message)
-
+        if validate_case(case_error_message):
+            page4_controller()
 
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
@@ -329,10 +319,22 @@ def page3():
 
 # generate response
 def generate_response(prompt):
-    st.session_state['messages'].append({"role": "user", "content": prompt})
-    response = gpt_call(prompt)
-    st.session_state['messages'].append({"role": "assistant", "content": response})
+    st.session_state['user_debate_history'].append(prompt)
+    st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
+    response = gpt_call_context(st.session_state['total_debate_history'])
+    st.session_state['bot_debate_history'].append(response)
+    st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
     return response
+
+def execute_stt(audio):
+    wav_file = open("audio/audio.wav", "wb")
+    wav_file.write(audio.tobytes())
+    wav_file.close()
+
+    audio_file= open("audio/audio.wav", "rb")
+    user_input = openai.Audio.transcribe("whisper-1", audio_file).text
+    audio_file.close()
+    return user_input
 
 def page4():
 
@@ -362,23 +364,24 @@ def page4():
             value=result,
             height=150)
 
-    debate_preset = "\n".join([
-        "Debate Rules: ",
-        "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
-        "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
-        "3) Answer logically with an introduction, body, and conclusion.", #add this one.
-        "4) Your role : " + st.session_state["pros_and_cons"] + "side debator"
-        "5) Debate subject: " + st.session_state['topic']
-    ])
-    first_prompt = "Now we're going to start. Summarize the subject and your role. And ask user ready to begin."
-    st.session_state['messages'] = [
-        {"role": "system", "content": debate_preset}
-    ]
+    # default system prompt settings
+    if not st.session_state['total_debate_history']:
+        debate_preset = "\n".join([
+            "Debate Rules: ",
+            "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
+            "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
+            "3) Answer logically with an introduction, body, and conclusion.", #add this one.
+            "4) Your role : " + st.session_state["pros_and_cons"] + " side debator",
+            "5) Debate subject: " + st.session_state['topic'],
+        ])
+        first_prompt = "Now we're going to start. Summarize the subject and your role. And ask user ready to begin."
 
-    response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
-    st.session_state['messages'].append({"role": "assistant", "content": response})
-    st.session_state['generated'].append(response)
-
+        st.session_state['total_debate_history'] = [
+            {"role": "system", "content": debate_preset}
+        ]
+        response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
+        st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
+        st.session_state['bot_debate_history'].append(response)
 
     # container for chat history
     response_container = st.container()
@@ -387,53 +390,44 @@ def page4():
 
     with container:
         with st.form(key='my_form', clear_on_submit=True):
+            user_input = None
+            # record voice
             audio = audiorecorder("Click to record", "Recording...")
-
+            if np.array_equal(st.session_state['pre_audio'], audio):
+                audio = np.ndarray(())
             print("audio", audio)
-
-            if audio != []:
-                user_input_exist=True
-                wav_file = open("audio.wav", "wb")
-                wav_file.write(audio.tobytes())
-
-                audio_file= open("audio.wav", "rb")
-
-                user_input = openai.Audio.transcribe("whisper-1", audio_file).text
-            else:
-                user_input_exist=False
-                user_input = "Nothing to transcribe"
-                print("Nothing to transcribe")
 
             #user_input = st.text_area("You:", key='input', height=100)
             submit_buttom = st.form_submit_button(label='Send')
+            send_error_message = st.empty()
         
         #if submit_buttom and user_input:
-        if submit_buttom and user_input_exist:
-            output = generate_response(user_input)
-            st.session_state['user_debate_history'].append(user_input)
-            st.session_state['bot_debate_history'].append(output)
-            st.session_state['total_debate_history'].append(
-                {
-                    "user" + str(len(st.session_state['user_debate_history'])): user_input,
-                    "bot" + str(len(st.session_state['bot_debate_history'])): output,
-                }
-            )
-            st.session_state['past'].append(user_input)
-            st.session_state['generated'].append(output)
+        if submit_buttom:
+            if audio.any():
+                user_input = execute_stt(audio)
+                output = generate_response(user_input)
+                st.session_state['pre_audio'] = audio
+            else:
+                send_error_message.error("Please record your voice first", icon="🚨")
+                print("Nothing to transcribe")
 
-    if st.session_state['generated']:
-        with response_container:
-            message(st.session_state["generated"][0], key=str(0))
-            for i in range(len(st.session_state['past'])):
-                message(st.session_state["past"][i], is_user=True, key=str(i) + '_user')
-                
-                text_to_speech = gTTS(text=st.session_state["generated"][i + 1], lang='en', slow=False)
-                text_to_speech.save(f'audio/test_gtts_{str(i)}.mp3')
-                audio_file = open(f'audio/test_gtts_{str(i)}.mp3', 'rb')
-                audio_bytes = audio_file.read()
-                st.audio(audio_bytes, format='audio/ogg')
+    #TODO 사용자 input이 없을 때도 reloading으로 buffering 걸리는 문제 해결
+    with response_container:
+        message(st.session_state['bot_debate_history'][0], key='0_bot')
+        text_to_speech = gTTS(text=st.session_state['bot_debate_history'][0], lang='en', slow=False)
+        text_to_speech.save(f'audio/test_gtts_0.mp3')
+        audio_file = open(f'audio/test_gtts_0.mp3', 'rb')
+        audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format='audio/ogg')
 
-                message(st.session_state["generated"][i + 1], key=str(i + 1))
+        for i in range(len(st.session_state['user_debate_history'])):
+            message(st.session_state['user_debate_history'][i], is_user=True, key=str(i)+'_user')
+            message(st.session_state['bot_debate_history'][i + 1], key=str(i + 1)+'_bot')
+            text_to_speech = gTTS(text=st.session_state['bot_debate_history'][i + 1], lang='en', slow=False)
+            text_to_speech.save(f'audio/test_gtts_{str(i + 1)}.mp3')
+            audio_file = open(f'audio/test_gtts_{str(i + 1)}.mp3', 'rb')
+            audio_bytes = audio_file.read()
+            st.audio(audio_bytes, format='audio/ogg')
 
     if st.button(
             label="Next",
