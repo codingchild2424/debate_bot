@@ -1,15 +1,15 @@
 import streamlit as st
+import openai
 
 from gtts import gTTS
 from collections import Counter
 from streamlit_chat import message
-from modules.gpt_modules import gpt_call
-from bots.judgement_bot import debate_judgement
 
-from langchain.prompts import PromptTemplate
+from dotenv import dotenv_values
 from bots.judgement_bot import debate_judgement
 from collections import Counter
 from audiorecorder import audiorecorder
+from st_custom_components import st_audiorec
 
 # modules
 from modules.gpt_modules import gpt_call
@@ -156,10 +156,11 @@ def page2():
     # add controller
     if option_result == "Total Debate":
         page_control_func = page_2_3_controller
-    elif option_result == "Evaluation Only":
-        page_control_func = page_2_7_controller
-    elif option_result == "Analyzing Utterances":
-        page_control_func = page_2_8_controller
+    #TODO page_2_7_controller, page_2_8_controller 만들기!
+    # elif option_result == "Evaluation Only":
+    #     page_control_func = page_2_7_controller
+    # elif option_result == "Analyzing Utterances":
+    #     page_control_func = page_2_8_controller
 
     if st.button(
         label='Submit all information',
@@ -335,22 +336,30 @@ def page4():
 
     with container:
         #TODO (웅기형) : STT 붙이는 부분
-        audio = audiorecorder("Click to record", "Recording...")
+        # audio_data = st_audiorec()
+        audio_data = audiorecorder("Click to record", "Recording...")
 
-        if audio:
-
+        if audio_data is not None:            
             wav_file = open("audio.wav", "wb")
-            wav_file.write(audio.tobytes())
+            wav_file.write(audio_data.tobytes())
+            wav_file.close()
 
-            audio_file= open("audio.wav", "rb")
-
-            whisper_result = openai.Audio.transcribe("whisper-1", audio_file).text
+            with open("audio.wav", "rb") as audio_file:
+                whisper_result = openai.Audio.transcribe(
+                    model = "whisper-1",
+                    file = audio_file,
+                    response_format = "text",
+                    language = "en"
+                )
+                print(whisper_result)
         
-
         with st.form(key='my_form', clear_on_submit=True):
-            user_input = st.text_area("You:", key='input', height=100)
+            if whisper_result:
+                user_input = whisper_result
+            else:
+                user_input = st.text_area("You:", key='input', height=100)
             submit_buttom = st.form_submit_button(label='Send')
-        
+
         if submit_buttom and user_input:
             output = generate_response(user_input)
             st.session_state['user_debate_history'].append(user_input)
