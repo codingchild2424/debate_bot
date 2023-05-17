@@ -2,4 +2,3 @@ __pycache__/
 .env
 *.mp3
 *.wav
-/audio
