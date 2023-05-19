@@ -6,10 +6,15 @@ from gtts import gTTS
 from collections import Counter
 from streamlit_chat import message
 
+# db_modules
+from modules.db_modules import get_db, put_item, get_item, get_lastest_item
+
 from dotenv import dotenv_values
 from bots.judgement_bot import debate_judgement
 from collections import Counter
 import time
+from time import strftime
+from time import localtime
 
 from audiorecorder import audiorecorder
 
@@ -22,14 +27,31 @@ config = dotenv_values(".env")
 openai.organization = config.get('OPENAI_ORGANIZATION')
 openai.api_key = config.get('OPENAI_API_KEY')
 
+
 #openai.organization = st.secrets['OPENAI_ORGANIZATION']
 #openai.api_key = st.secrets['OPENAI_API_KEY']
 
+#########################################################
+# GET DB
+#########################################################
+dynamodb = get_db()
 
-# Page Configuration
+
+#########################################################
+# Time Stamp
+#########################################################
+tm = time.localtime()
+time_stamp = strftime('%Y-%m-%d %I:%M:%S %p', tm)
+
+
+#########################################################
+# Page Configurations
+#########################################################
 st.set_page_config(page_title="Streamlit App")
 
+#########################################################
 # Initialize session state variables
+#########################################################
 if "page" not in st.session_state:
     st.session_state.page = "Page 1"
 
@@ -38,9 +60,6 @@ if "topic" not in st.session_state:
 
 if "user_id" not in st.session_state:
     st.session_state.user_id = ""
-
-if "openAI_token" not in st.session_state:
-    st.session_state.openAI_token = ""
 
 if "case1" not in st.session_state:
     st.session_state.case1 = ""
@@ -69,7 +88,6 @@ if "user_debate_time" not in st.session_state:
 if "pros_and_cons" not in st.session_state:
     st.session_state.pros_and_cons = ""
 
-# Time session
 if "start_time" not in st.session_state:
     st.session_state.start_time = time.time()
 
@@ -82,31 +100,64 @@ if "debate_time" not in st.session_state:
 if "pre_audio" not in st.session_state:
     st.session_state.pre_audio = np.array([])
 
+if "case1" not in st.session_state:
+    st.session_state.case1 = ""
 
+if "case2" not in st.session_state:
+    st.session_state.case2 = ""
+
+if "case3" not in st.session_state:
+    st.session_state.case3 = ""
+
+
+# for db session number
+if "session_num" not in st.session_state:
+    st.session_state.session_num = 0
+
+
+#########################################################
 # Save function (placeholder)
-def save_info(user_id, openAI_token, debate_theme):
+#########################################################
+def save_info(user_id):
     # You can add the code to save the submitted info (e.g., to a database)
     st.session_state.user_id = user_id
-    st.session_state.openAI_token = openAI_token
-    st.session_state.debate_theme = debate_theme
 
     print("User ID:", user_id)
-    print("OpenAI token:", openAI_token)
-    print("Debate theme:", debate_theme)
 
 # Session state
 #session_state = SessionState.get(user_id="", openAI_token="", debate_theme="")
-
 def write_info():
     st.write('You choose', st.session_state.topic_list)
 
 # for callback when button is clicked
 def page_1_2_controller():
-    if st.session_state.user_id.strip() == "" or st.session_state.openAI_token.strip() == "":
+    if st.session_state.user_id.strip() == "":
         st.session_state.page = "Page 1"
         st.warning('Please fill in all the required fields.')
     else:
         st.session_state.page = "Page 2"
+        print("save info")
+
+        save_info(
+            st.session_state.user_id
+            )
+        st.write('Information submitted successfully.')
+
+        #########################################################
+        # Session Update
+        #########################################################
+        debate_setting = get_lastest_item(
+            table=dynamodb.Table('DEBO_debate_setting'),
+            name_of_partition_key="user_id",
+            value_of_partition_key=st.session_state.user_id,
+            limit_num=1
+        )
+        # Session이 없다면, 0으로 초기화
+        if debate_setting == []:
+            st.session_state.session_num = 0
+        # User의 이전 기록에서 Session이 있다면, Session Number를 가져오고 갱신함
+        else:
+            st.session_state.session_num = debate_setting[0]['session_num']
 
 def page_2_3_controller():
     st.session_state.page = "Page 3"
@@ -140,24 +191,12 @@ def page1():
         max_chars=100,
         placeholder="Enter user ID"
         )
-    # st.session_state.openAI_token = st.text_input(
-    #     label="Enter OpenAI token",
-    #     max_chars=200,
-    #     placeholder="Enter OpenAI token"
-    #     )
-
-    if st.button(
+    
+    st.button(
         label='Submit all information',
         on_click=page_1_2_controller
-        ):
+        )
         # You can add a function here to save the submitted info
-        if st.session_state.user_id != '' and st.session_state.openAI_token != '':
-            save_info(
-                st.session_state.user_id, 
-                st.session_state.openAI_token, 
-                st.session_state.debate_theme
-                )
-            st.write('Information submitted successfully.')
 
 #########################################################
 # Page 2
@@ -195,49 +234,42 @@ def page3():
             "THS a world where the government gives cash that individuals can use to freely select their academic preference (including but not limited to school of choice, private academies, and tutoring) instead of funding for public education.",
             "THW abolish all requirements and evaluation criteria in higher education (i.e., attendance, exams, assignments)."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     elif st.session_state.debate_theme == 'Sports':
         topic_list = [
             "THBT having star players for team sports do more harm than good to the team.",
             "THR the emphasis on winning a medal in the Olympics as a core symbol of success.",
             "THP a world where sports serves purely entertainment purposes even at the expense of fair play."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     elif st.session_state.debate_theme == 'Religion':
         topic_list = [
             "THW, as a religious group/leader, cease attempts at increasing the number of believers and instead prioritize boosting loyalty amongst adherents to the religion.",
             "Assuming feasibility, TH prefers a world where a panel of church leaders would create a universally accepted interpretation of the Bible that the believers would abide by.",
             "THW aggressively crackdown on megachurches."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     elif st.session_state.debate_theme == 'Justice':
         topic_list = [
             "In 2050, AI robots are able to replicate the appearance, conversation, and reaction to emotions of human beings. However, their intelligence still does not allow them to sense emotions and feelings such as pain, happiness, joy, and etc.",
             "In the case a human destroys the robot beyond repair, THW charge murder instead of property damage.",
             "THP a world where the criminal justice system’s role is mainly for victim’s vengeance. THW allow prosecutors and victims to veto assigned judges."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     elif st.session_state.debate_theme == 'Pandemic':
         topic_list = [
             "During a pandemic, THBT businesses that benefit from the pandemic should be additionally taxed.",
             "THW nullify the effect of medical patents in cases of medical emergencies.",
             "THW ban media content that denies the efficacy of the COVID-19 without substantial evidence."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     elif st.session_state.debate_theme == 'Politics':
         topic_list = [
             "Info: The Candle Light Will (촛불민심) is a term derived from the symbolic candle-light protests for the impeachment of the late president Park Geun Hye, commonly used to mean the people’s will to fight against corrupt governments. The Moon administration has frequently referred to the Candle Light Will as the driving force behind its election that grants legitimacy to its policies. THR the ‘candle light will’ narrative in the political discourse of South Korea.",
             "THW impose a cap on the property and income of politicians.",
             "THW give the youth extra votes."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     elif st.session_state.debate_theme == 'Minority':
         topic_list = [
             "Context: A prominent member of the LGBT movement has discovered that a very influential politician helping the LGBT movement has been lying about their sexual orientation as being gay when they are straight. THW disclose this information.",
             "THBT the LGBTQIA+ movement should denounce the existence of marriage as opposed to fighting for equal marriage rights.",
             "THBT the LGBTQIA+ movement should condemn the consumption of movies and TV shows that cast straight actors/actresses in non-heterosexual identified roles."
             ]
-        #topic = st.selectbox("Select a topic_list", topic_list)
     else:
         topic_list = [
             "THW remove all laws that relate to filial responsibilities.",
@@ -259,17 +291,20 @@ def page3():
 
     st.write("3. Write 3 cases")
 
-    case1 = st.text_area(
+    #########################################################
+    # Case도 세션에 저장
+    #########################################################
+    st.session_state.case1 = st.text_area(
         label="Case 1",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
         )
-    case2 = st.text_area(
+    st.session_state.case2 = st.text_area(
         label="Case 2",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
     )
-    case3 = st.text_area(
+    st.session_state.case3 = st.text_area(
         label="Case 3",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
@@ -277,16 +312,32 @@ def page3():
     case_error_message = st.empty()
     st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
     
-    start = st.button(label="Start Debate")
+    # Save the data to database
+    start = st.button(
+        label="Start Debate",
+        on_click=put_item(
+            table=dynamodb.Table('DEBO_debate_setting'),
+            item={
+                'user_id': st.session_state.user_id,
+                'time_stamp': time_stamp,
+                'debate_theme': st.session_state.debate_theme,
+                'debate_topic': st.session_state.topic,
+                'case1': st.session_state.case1,
+                'case2': st.session_state.case2,
+                'case3': st.session_state.case3,
+                'session_num': st.session_state.session_num,
+            }
+            )
+        )
 
     def validate_case(error_message):
-        if not case1 or not case2 or not case3:
+        if not st.session_state.case1 or not st.session_state.case2 or not st.session_state.case3:
             case_error_message.error("Please fill out above all", icon="🚨")
             return False
         else:
-            st.session_state.case1 = case1
-            st.session_state.case2 = case2
-            st.session_state.case3 = case3
+            # st.session_state.case1 = st.session_statecase1
+            # st.session_state.case2 = st.session_statecase2
+            # st.session_state.case3 = st.session_statecase3
             return True
 
     if start:
@@ -294,6 +345,9 @@ def page3():
             page_3_4_controller()
             st.experimental_rerun()
 
+    #########################################################
+    # Ask to GPT
+    #########################################################
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
         user_input = st.sidebar.text_area(
@@ -308,6 +362,19 @@ def page3():
                 result = ""
             else:
                 result = gpt_call(user_input)
+
+                # save user_prompt and bot_response to database
+                put_item(
+                    table=dynamodb.Table('DEBO_gpt_ask'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'user_prompt': user_input,
+                        'bot_response': result,
+                        'session_num': st.session_state.session_num,
+                    }
+                )
+
         else:
             result = ""
 
@@ -359,6 +426,16 @@ def page4():
                 result = ""
             else:
                 result = gpt_call(user_input)
+                put_item(
+                    table=dynamodb.Table('DEBO_gpt_ask'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'user_prompt': user_input,
+                        'bot_response': result,
+                        'session_num': st.session_state.session_num,
+                    }
+                )
         else:
             result = ""
 
@@ -387,6 +464,21 @@ def page4():
         st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
         st.session_state['bot_debate_history'].append(response)
 
+        # 아래에서 한번에 저장
+
+        # put_item(
+        #     table=dynamodb.Table('DEBO_debate_main'),
+        #     item={
+        #         'user_id': st.session_state.user_id,
+        #         'time_stamp': time_stamp,
+        #         'session_num': st.session_state.session_num,
+        #         'bot_response': response,
+        #         'user_prompt': "",
+        #         'turn_num': 0,
+        #     }
+        # )
+
+
     # container for chat history
     response_container = st.container()
     # container for text box
@@ -409,8 +501,33 @@ def page4():
         if submit_buttom:
             if audio.any():
                 user_input = execute_stt(audio)
-                output = generate_response(user_input)
+                response = generate_response(user_input)
                 st.session_state['pre_audio'] = audio
+
+                debate_main_latest_data = get_lastest_item(
+                    table=dynamodb.Table('DEBO_debate_main'),
+                    name_of_partition_key="user_id",
+                    value_of_partition_key=st.session_state.user_id,
+                    limit_num=1
+                )
+
+                if debate_main_latest_data == []:
+                    turn_num = 0
+                else:
+                    turn_num = debate_main_latest_data[0]['turn_num']
+
+                put_item(
+                    table=dynamodb.Table('DEBO_debate_main'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'session_num': st.session_state.session_num,
+                        'bot_response': response,
+                        'user_prompt': user_input,
+                        'turn_num': turn_num,
+                    }
+                )
+
             else:
                 send_error_message.error("Please record your voice first", icon="🚨")
                 print("Nothing to transcribe")
@@ -481,6 +598,18 @@ def page5():
 
             st.write("Debate Judgement Result")
             st.write(judgement_result)
+
+            if judgement_result != "":
+                put_item(
+                    table=dynamodb.Table('DEBO_evaluation'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'judgement_text': judgement_result,
+                        'session_num': st.session_state.session_num,
+                    }
+                )
+
         st.success('Done!')
 
     with tab2:
@@ -517,6 +646,19 @@ def page5():
         # Count the disfluency words
         disfluency_counts = sum(user_word in disfluency_word_list for user_word in user_history)
         st.write("Disfluency Counts: ", disfluency_counts)
+
+        if total_word_count != "" and average_word_per_time != "" and disfluency_counts != "":
+                put_item(
+                    table=dynamodb.Table('DEBO_evaluation'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'total_word_count': total_word_count,
+                        'average_word_per_time': average_word_per_time,
+                        'disfluency_counts': disfluency_counts,
+                        'session_num': st.session_state.session_num,
+                    }
+                )
 
         # 유저와 봇의 대화 데이터가 세션에 남아있음
         # st.session_state.debate_history
@@ -561,6 +703,17 @@ def page6():
             user_debate_history, 
             bot_debate_history
             )
+        
+        if judgement_result != "":
+                put_item(
+                    table=dynamodb.Table('DEBO_evaluation'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'judgement_text': judgement_result,
+                        'session_num': st.session_state.session_num,
+                    }
+                )
 
         st.write("Debate Judgement Result")
         st.write(judgement_result)
@@ -599,6 +752,19 @@ def page6():
         # Count the disfluency words
         disfluency_counts = sum(user_word in disfluency_word_list for user_word in user_history)
         st.write("Disfluency Counts: ", disfluency_counts)
+
+        if total_word_count != "" and average_word_per_time != "" and disfluency_counts != "":
+                put_item(
+                    table=dynamodb.Table('DEBO_evaluation'),
+                    item={
+                        'user_id': st.session_state.user_id,
+                        'time_stamp': time_stamp,
+                        'total_word_count': total_word_count,
+                        'average_word_per_time': average_word_per_time,
+                        'disfluency_counts': disfluency_counts,
+                        'session_num': st.session_state.session_num,
+                    }
+                )
 
         # 유저와 봇의 대화 데이터가 세션에 남아있음
         # st.session_state.debate_history
