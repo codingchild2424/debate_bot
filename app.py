@@ -16,7 +16,6 @@ from bots.judgement_bot import debate_judgement
 from collections import Counter
 import time
 from time import strftime
-from time import localtime
 
 from audiorecorder import audiorecorder
 
@@ -171,13 +170,16 @@ def page_6_7_controller():
 def page_2_7_controller():
     st.session_state.page = "Page 7"
 
+def page_n_1_controller():
+    st.session_state.page = "Page 1"
+
 #########################################################
 # Page 1
 #########################################################
 def page1():
-
-    # for local variables
-    topic_list = []
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
 
     st.header('User Info')
     st.session_state.user_id = st.text_input(
@@ -186,17 +188,21 @@ def page1():
         placeholder="Enter user ID"
         )
     
-    if st.button(
-        label='Submit',
+    st.button(
+        label='Next',
         on_click=page_1_2_controller
-        ):
-        st.write('Information submitted successfully.')
-        # You can add a function here to save the submitted info
+        )
 
 #########################################################
 # Page 2
 #########################################################
 def page2():
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with pre:
+        st.button("🔙", on_click=page_n_1_controller)
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
+
     st.header("Choose Option")
     option_result = st.selectbox("Choose your option", ["Total Debate", "Evaluation Only & Analyzing Utterances"])
 
@@ -207,7 +213,7 @@ def page2():
         page_control_func = page_2_7_controller
 
     st.button(
-        label='Submit',
+        label='Next',
         on_click=page_control_func
     )
         
@@ -229,7 +235,18 @@ def page3():
 
     print(debate_history)
 
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with pre:
+        st.button("🔙", on_click=page_1_2_controller)
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
     st.header("Debate History")
+
+    st.button(
+        label=f'🚀 Start new debate',
+        on_click=page_3_4_controller
+    )
+    st.write("_"*50)
 
     num_history = len(debate_history)
     for i in range(num_history):
@@ -248,11 +265,6 @@ def page3():
             )
             st.write("_"*50)
 
-    st.button(
-        label=f'🚀 Start new debate',
-        on_click=page_3_4_controller
-    )
-
 #########################################################
 # Page 4
 #########################################################
@@ -260,6 +272,12 @@ def page4():
     #########################################################
     # Tab 1 - Total Debate (토론 준비 -> 연습 -> 평가)
     #########################################################
+
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with pre:
+        st.button("🔙", on_click=page_2_3_controller)
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
 
     st.header("Total Debate")
     debate_themes = ['Education','Sports','Religion','Justice','Pandemic','Politics','Minority','etc']
@@ -335,8 +353,11 @@ def page4():
     )
     st.write("> Topic : ", topic)
 
-    st.subheader("3. Cases")
-    st.caption('These are just a tool to help you structure your thoughts on the content and does not reflect the actual discussion.')
+    st.subheader("3. Side")
+    st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
+
+    st.subheader("4. Cases")
+    st.caption('📢 These are just a tool to help you structure your thoughts on the content and does not reflect the actual discussion.')
 
     #########################################################
     # Case도 세션에 저장
@@ -344,23 +365,22 @@ def page4():
     st.session_state.case1 = st.text_area(
         label="Write a Case 1",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
-        height=100
+        height=150
         )
     st.session_state.case2 = st.text_area(
         label="Write a Case 2",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
-        height=100
+        height=150
     )
     st.session_state.case3 = st.text_area(
         label="Write a Case 3",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
-        height=100
+        height=150
     )
     case_error_message = st.empty()
-
-    st.subheader("4. Side")
-    st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
     
+    st.write("*" * 50)
+
     # Save the data to database
     start = st.button(
         label="Start Debate",
@@ -461,6 +481,9 @@ def page5():
     # time
     st.session_state.start_time = time.time()
 
+    #########################################################
+    # Ask to GPT
+    #########################################################
     with st.sidebar:
         st.sidebar.title('Ask to GPT')
         user_input = st.sidebar.text_area(
@@ -507,7 +530,7 @@ def page5():
             "Debate Rules: ",
             "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
             "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
-            "3) Answer logically with an introduction, body, and conclusion.", #add this one.
+            "3) Answer logically with an introduction, body, and conclusion.",
             "4) Your role : " + bot_role + " side debator",
             "5) Debate subject: " + st.session_state['topic'],
         ])
@@ -520,6 +543,12 @@ def page5():
         st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
         st.session_state['bot_debate_history'].append(response)
 
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with pre:
+        st.button("🔙", on_click=page_3_4_controller)
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
+
     # container for chat history
     response_container = st.container()
     # container for text box
@@ -530,7 +559,7 @@ def page5():
         with st.form(key='my_form', clear_on_submit=True):
             user_input = None
             # record voice
-            audio = audiorecorder("Click to record", "Recording...")
+            audio = audiorecorder("⏺️ Click to record", "⏹️ Recording...")
             if np.array_equal(st.session_state['pre_audio'], audio):
                 audio = np.array([])
 
@@ -575,7 +604,6 @@ def page5():
                 reload = True
                 print("Nothing to transcribe")
 
-    #TODO 사용자 input이 없을 때도 reloading으로 buffering 걸리는 문제 해결
     with response_container:
         message(st.session_state['bot_debate_history'][0], key='0_bot')
         if len(st.session_state['bot_debate_history']) == 1:
@@ -597,22 +625,29 @@ def page5():
             st.audio(audio_bytes, format='audio/ogg')
         reload = False
 
-    if st.button(label="Next",
-                 on_click=page_5_6_controller):
-        st.write('Information submitted successfully.')
+    st.button(
+        label="Next",
+        on_click=page_5_6_controller
+    )
 
 print("#"*80)
 pprint.pprint(st.session_state.to_dict())
 print("#"*80)
 
 #########################################################
-# Page5 - Total Debate Evaluation
+# Page6 - Total Debate Evaluation
 #########################################################
 def page6():
 
     # end time
     st.session_state.end_time = time.time()
     st.session_state.debate_time = st.session_state.end_time - st.session_state.start_time
+
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with pre:
+        st.button("🔙", on_click=page_4_5_controller)
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
 
     # st.tab
     st.header('Total Debate Evaluation')
@@ -722,7 +757,7 @@ def page6():
     
 
 #########################################################
-# Page6
+# Page7
 #########################################################
 
 def page7():
@@ -838,13 +873,13 @@ def page7():
 # Page Routing
 #########################################################
 pages = {
-    "Page 1": page1, # user_id와 openai_key를 입력받는 페이지
+    "Page 1": page1, # user_id를 입력받는 페이지
     "Page 2": page2, # 원하는 기능을 선택하는 페이지
-    "Page 3": page3,
-    "Page 4": page4, # Total Debate
-    "Page 5": page5, # Evaluation Only
-    "Page 6": page6, # Analyzing Utterances
-    "Page 7": page7,
+    "Page 3": page3, # 과거 토론 내역을 선택하는 페이지
+    "Page 4": page4, # 토론 세부사항 설정
+    "Page 5": page5, # Total Debate
+    "Page 6": page6, # Evaluation Only
+    "Page 7": page7, # Analyzing Utterances
 }
 
 selection = st.session_state.page
