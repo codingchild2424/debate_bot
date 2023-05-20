@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import openai
+import pprint
 
 from gtts import gTTS
 from collections import Counter
@@ -377,7 +378,7 @@ def page4():
 
     if start:
         if validate_case(case_error_message):
-            page_3_4_controller()
+            page_4_5_controller()
             st.experimental_rerun()
 
     #########################################################
@@ -518,6 +519,7 @@ def page5():
     response_container = st.container()
     # container for text box
     container = st.container()
+    reload = False
 
     with container:
         with st.form(key='my_form', clear_on_submit=True):
@@ -526,7 +528,6 @@ def page5():
             audio = audiorecorder("Click to record", "Recording...")
             if np.array_equal(st.session_state['pre_audio'], audio):
                 audio = np.array([])
-            print("audio", audio)
 
             #user_input = st.text_area("You:", key='input', height=100)
             submit_buttom = st.form_submit_button(label='Send')
@@ -546,7 +547,8 @@ def page5():
                     limit_num=1
                 )
 
-                if debate_main_latest_data == []:
+                print(f'debate_main_latest_data : {debate_main_latest_data}')
+                if not debate_main_latest_data:
                     turn_num = 0
                 else:
                     turn_num = debate_main_latest_data[0]['turn_num']
@@ -565,33 +567,38 @@ def page5():
 
             else:
                 send_error_message.error("Please record your voice first", icon="🚨")
+                reload = True
                 print("Nothing to transcribe")
 
     #TODO 사용자 input이 없을 때도 reloading으로 buffering 걸리는 문제 해결
     with response_container:
         message(st.session_state['bot_debate_history'][0], key='0_bot')
-        text_to_speech = gTTS(text=st.session_state['bot_debate_history'][0], lang='en', slow=False)
-        text_to_speech.save(f'audio/test_gtts_0.mp3')
-        audio_file = open(f'audio/test_gtts_0.mp3', 'rb')
+        if len(st.session_state['bot_debate_history']) == 1:
+            text_to_speech = gTTS(text=st.session_state['bot_debate_history'][0], lang='en', slow=False)
+            text_to_speech.save(f"audio/bot_{st.session_state['session_num']}_res_0.mp3")
+        
+        audio_file = open(f"audio/bot_{st.session_state['session_num']}_res_0.mp3", 'rb')
         audio_bytes = audio_file.read()
         st.audio(audio_bytes, format='audio/ogg')
 
         for i in range(len(st.session_state['user_debate_history'])):
             message(st.session_state['user_debate_history'][i], is_user=True, key=str(i)+'_user')
             message(st.session_state['bot_debate_history'][i + 1], key=str(i + 1)+'_bot')
-            text_to_speech = gTTS(text=st.session_state['bot_debate_history'][i + 1], lang='en', slow=False)
-            text_to_speech.save(f'audio/test_gtts_{str(i + 1)}.mp3')
-            audio_file = open(f'audio/test_gtts_{str(i + 1)}.mp3', 'rb')
+            if i == len(st.session_state['bot_debate_history']) - 2 and not reload:
+                text_to_speech = gTTS(text=st.session_state['bot_debate_history'][i + 1], lang='en', slow=False)
+                text_to_speech.save(f"audio/bot_{st.session_state['session_num']}_res_{str(i + 1)}.mp3")
+            audio_file = open(f"audio/bot_{st.session_state['session_num']}_res_{str(i + 1)}.mp3", 'rb')
             audio_bytes = audio_file.read()
             st.audio(audio_bytes, format='audio/ogg')
+        reload = False
 
     if st.button(label="Next",
-                 on_click=page_4_5_controller):
+                 on_click=page_5_6_controller):
         st.write('Information submitted successfully.')
 
-print("#"*50)
-print(st.session_state)
-print("#"*50)
+print("#"*80)
+pprint.pprint(st.session_state.to_dict())
+print("#"*80)
 
 #########################################################
 # Page5 - Total Debate Evaluation
