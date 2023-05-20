@@ -693,7 +693,6 @@ def page6():
                         'session_num': st.session_state.session_num,
                     }
                 )
-
         st.success('Done!')
 
     with tab2:
@@ -766,7 +765,12 @@ def page7():
     st.session_state.end_time = time.time()
     st.session_state.debate_time = st.session_state.end_time - st.session_state.start_time
 
-    # st.tab
+    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    with pre:   
+        st.button("🔙", on_click=page_1_2_controller)
+    with home:
+        st.button("🔝", on_click=page_n_1_controller)
+
     st.header('Total Debate Evaluation')
 
     tab1, tab2 = st.tabs(['Debate Judgement', 'Debate Analysis'])
@@ -779,36 +783,36 @@ def page7():
         # 전체, 유저, 봇 세 가지 옵션 중에 선택
         judgement_who = st.selectbox("Choose your debate theme", debate_themes)
 
-        judgement_result = ""
-        if judgement_result == "":
-            st.write("Wait for judgement result...")
+        with st.spinner('Wait for judgement result...'):
+            judgement_result = ""
 
-        user_debate_history = "".join(
-            st.session_state.user_debate_history
-        )
-        bot_debate_history = "".join(
-            st.session_state.bot_debate_history
-        )
-
-        judgement_result = debate_judgement(
-            judgement_who, 
-            user_debate_history, 
-            bot_debate_history
+            user_debate_history = "".join(
+                st.session_state.user_debate_history
             )
-        
-        if judgement_result != "":
-                put_item(
-                    table=dynamodb.Table('DEBO_evaluation'),
-                    item={
-                        'user_id': st.session_state.user_id,
-                        'time_stamp': time_stamp,
-                        'judgement_text': judgement_result,
-                        'session_num': st.session_state.session_num,
-                    }
-                )
+            bot_debate_history = "".join(
+                st.session_state.bot_debate_history
+            )
 
-        st.write("Debate Judgement Result")
-        st.write(judgement_result)
+            judgement_result = debate_judgement(
+                judgement_who, 
+                user_debate_history, 
+                bot_debate_history
+                )
+            
+            st.write("Debate Judgement Result")
+            st.write(judgement_result)
+
+            if judgement_result:
+                    put_item(
+                        table=dynamodb.Table('DEBO_evaluation'),
+                        item={
+                            'user_id': st.session_state.user_id,
+                            'time_stamp': time_stamp,
+                            'judgement_text': judgement_result,
+                            'session_num': int(st.session_state.session_num),
+                        }
+                    )
+            st.success('Done!')
 
     with tab2:
         st.header('Debate Analysis')
@@ -852,9 +856,9 @@ def page7():
                         'user_id': st.session_state.user_id,
                         'time_stamp': time_stamp,
                         'total_word_count': total_word_count,
-                        'average_word_per_time': average_word_per_time,
+                        'average_word_per_time': Decimal(str(average_word_per_time)),
                         'disfluency_counts': disfluency_counts,
-                        'session_num': st.session_state.session_num,
+                        'session_num': int(st.session_state.session_num),
                     }
                 )
 
