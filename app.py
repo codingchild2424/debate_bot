@@ -100,15 +100,6 @@ if "debate_time" not in st.session_state:
 if "pre_audio" not in st.session_state:
     st.session_state.pre_audio = np.array([])
 
-if "case1" not in st.session_state:
-    st.session_state.case1 = ""
-
-if "case2" not in st.session_state:
-    st.session_state.case2 = ""
-
-if "case3" not in st.session_state:
-    st.session_state.case3 = ""
-
 
 # for db session number
 if "session_num" not in st.session_state:
@@ -138,9 +129,7 @@ def page_1_2_controller():
         st.session_state.page = "Page 2"
         print("save info")
 
-        save_info(
-            st.session_state.user_id
-            )
+        save_info(st.session_state.user_id)
         st.write('Information submitted successfully.')
 
         #########################################################
@@ -174,8 +163,11 @@ def page_4_5_controller():
 def page_5_6_controller():
     st.session_state.page = "Page 6"
 
-def page_2_6_controller():
-    st.session_state.page = "Page 6"
+def page_6_7_controller():
+    st.session_state.page = "Page 7"
+
+def page_2_7_controller():
+    st.session_state.page = "Page 7"
 
 #########################################################
 # Page 1
@@ -185,15 +177,15 @@ def page1():
     # for local variables
     topic_list = []
 
-    st.header('User Info & Debate Setting')
+    st.header('User Info')
     st.session_state.user_id = st.text_input(
-        label="Enter user ID",
+        label="User ID",
         max_chars=100,
         placeholder="Enter user ID"
         )
     
     st.button(
-        label='Submit all information',
+        label='Submit',
         on_click=page_1_2_controller
         )
         # You can add a function here to save the submitted info
@@ -209,16 +201,59 @@ def page2():
     if option_result == "Total Debate":
         page_control_func = page_2_3_controller
     elif option_result == "Evaluation Only & Analyzing Utterances":
-        page_control_func = page_2_6_controller
+        page_control_func = page_2_7_controller
 
-    if st.button(
-        label='Submit all information',
+    st.button(
+        label='Submit',
         on_click=page_control_func
-        ):
-        st.write('Information submitted successfully.')
+    )
         
 
+#########################################################
+# Page 3
+#########################################################
 def page3():
+    debate_history = get_lastest_item(
+            table=dynamodb.Table('DEBO_debate_setting'),
+            name_of_partition_key="user_id",
+            value_of_partition_key=st.session_state.user_id,
+            #TODO 전체 보여줄 개수 설정
+            limit_num=10
+        )
+
+    if not debate_history:
+        st.info('There is no previous debate history', icon="ℹ️")
+
+    print(debate_history)
+
+    st.header("Debate History")
+
+    num_history = len(debate_history)
+    for i in range(num_history):
+        with st.container():
+            st.write(f"#### {i + 1}")
+            st.write(f"Debate Thema : {debate_history[i]['debate_theme']}")
+            st.write(f"Debate Topic : {debate_history[i]['debate_topic']}")
+            st.write(f"Case 1 : {debate_history[i]['case1']}")
+            st.write(f"Case 2 : {debate_history[i]['case2']}")
+            st.write(f"Case 3 : {debate_history[i]['case3']}")
+            st.write(f"Created at : {debate_history[i]['time_stamp']}")
+            st.button(
+                label='Continue this dabate',
+                key=str(i),
+                on_click=page_4_5_controller
+            )
+            st.write("_"*50)
+
+    st.button(
+        label=f'🚀 Start new debate',
+        on_click=page_3_4_controller
+    )
+
+#########################################################
+# Page 4
+#########################################################
+def page4():
     #########################################################
     # Tab 1 - Total Debate (토론 준비 -> 연습 -> 평가)
     #########################################################
@@ -382,10 +417,10 @@ def page3():
             label="Answer", 
             placeholder="(Answer will be shown here)",
             value=result,
-            height=150)
+            height=300)
 
 #########################################################
-# Page4
+# Page5
 #########################################################
 
 # generate response
@@ -407,7 +442,7 @@ def execute_stt(audio):
     audio_file.close()
     return user_input
 
-def page4():
+def page5():
 
     # time
     st.session_state.start_time = time.time()
@@ -443,7 +478,7 @@ def page4():
             label="Answer", 
             placeholder="(Answer will be shown here)",
             value=result,
-            height=150)
+            height=300)
 
     # default system prompt settings
     if not st.session_state['total_debate_history']:
@@ -561,7 +596,7 @@ print("#"*50)
 #########################################################
 # Page5 - Total Debate Evaluation
 #########################################################
-def page5():
+def page6():
 
     # end time
     st.session_state.end_time = time.time()
@@ -668,7 +703,7 @@ def page5():
 # Page6
 #########################################################
 
-def page6():
+def page7():
 
     # end time
     st.session_state.end_time = time.time()
@@ -777,17 +812,17 @@ def page6():
     # 이전에 기록된 값이 없다면, 그래프를 그리지 않습니다.
 
 
-
 #########################################################
 # Page Routing
 #########################################################
 pages = {
     "Page 1": page1, # user_id와 openai_key를 입력받는 페이지
     "Page 2": page2, # 원하는 기능을 선택하는 페이지
-    "Page 3": page3, # Total Debate
-    "Page 4": page4, # Evaluation Only
-    "Page 5": page5, # Analyzing Utterances
-    "Page 6": page6,
+    "Page 3": page3,
+    "Page 4": page4, # Total Debate
+    "Page 5": page5, # Evaluation Only
+    "Page 6": page6, # Analyzing Utterances
+    "Page 7": page7,
 }
 
 selection = st.session_state.page
