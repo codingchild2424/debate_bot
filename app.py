@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import openai
 import pprint
+from decimal import Decimal
 
 from gtts import gTTS
 from collections import Counter
@@ -131,7 +132,7 @@ def page_1_2_controller():
         print("save info")
 
         save_info(st.session_state.user_id)
-        st.write('Information submitted successfully.')
+        
 
         #########################################################
         # Session Update
@@ -185,10 +186,11 @@ def page1():
         placeholder="Enter user ID"
         )
     
-    st.button(
+    if st.button(
         label='Submit',
         on_click=page_1_2_controller
-        )
+        ):
+        st.write('Information submitted successfully.')
         # You can add a function here to save the submitted info
 
 #########################################################
@@ -262,6 +264,7 @@ def page4():
     debate_themes = ['Education','Sports','Religion','Justice','Pandemic','Politics','Minority','etc']
 
     st.write("1. Select a debate theme")
+
     st.session_state.debate_theme = st.selectbox("Choose your debate theme", debate_themes)
 
     if st.session_state.debate_theme == 'Education':
@@ -325,7 +328,7 @@ def page4():
     st.write("2. Select a topic")
     st.session_state.topic = st.selectbox("Choose your topic", topic_list)
 
-    st.write("3. Write 3 cases")
+    st.write("3. Write 3 cases (Note that these are just a tool to help you structure your thoughts on the content and does not reflect the actual discussion.)")
 
     #########################################################
     # Case도 세션에 저장
@@ -346,7 +349,9 @@ def page4():
         height=100
     )
     case_error_message = st.empty()
-    st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
+
+    st.write("4. Choose your Side (Pros and Cons)")
+    st.session_state.pros_and_cons = st.selectbox("Choose your Side", ["Pros", "Cons"])
     
     # Save the data to database
     start = st.button(
@@ -418,7 +423,7 @@ def page4():
             label="Answer", 
             placeholder="(Answer will be shown here)",
             value=result,
-            height=300)
+            height=400)
 
 #########################################################
 # Page5
@@ -479,16 +484,23 @@ def page5():
             label="Answer", 
             placeholder="(Answer will be shown here)",
             value=result,
-            height=300)
+            height=400)
 
     # default system prompt settings
     if not st.session_state['total_debate_history']:
+
+        # bot role, pros and cons
+        if st.session_state['pros_and_cons'] == "Pros":
+            bot_role = "Con"
+        else:
+            bot_role = "Pros"
+
         debate_preset = "\n".join([
             "Debate Rules: ",
             "1) This debate will be divided into two teams, pro and con, with two debates on each team.",
             "2) The order of speaking is: first debater for the pro side, first debater for the con side, second debater for the pro side, second debater for the con side.",
             "3) Answer logically with an introduction, body, and conclusion.", #add this one.
-            "4) Your role : " + st.session_state["pros_and_cons"] + " side debator",
+            "4) Your role : " + bot_role + " side debator",
             "5) Debate subject: " + st.session_state['topic'],
         ])
         first_prompt = "Now we're going to start. Summarize the subject and your role. And ask user ready to begin."
@@ -499,21 +511,6 @@ def page5():
         response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
         st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
         st.session_state['bot_debate_history'].append(response)
-
-        # 아래에서 한번에 저장
-
-        # put_item(
-        #     table=dynamodb.Table('DEBO_debate_main'),
-        #     item={
-        #         'user_id': st.session_state.user_id,
-        #         'time_stamp': time_stamp,
-        #         'session_num': st.session_state.session_num,
-        #         'bot_response': response,
-        #         'user_prompt': "",
-        #         'turn_num': 0,
-        #     }
-        # )
-
 
     # container for chat history
     response_container = st.container()
@@ -612,7 +609,9 @@ def page6():
     # st.tab
     st.header('Total Debate Evaluation')
 
-    tab1, tab2 = st.tabs(['Debate Judgement', 'Debate Analysis'])
+    st.write('Note that evaluation using GPT is an experimental feature. Please check it out and give us your feedback.')
+
+    tab1, tab2 = st.tabs(['Debate Evaluation', 'Debate Analysis'])
 
     with tab1:
         st.header("Debate Evaluation")
@@ -690,15 +689,23 @@ def page6():
         st.write("Disfluency Counts: ", disfluency_counts)
 
         if total_word_count != "" and average_word_per_time != "" and disfluency_counts != "":
+                
+                print("user_id", type(st.session_state.user_id))
+                print("time_stamp", type(time_stamp))
+                print("total_word_count", type(total_word_count))
+                print("average_word_per_time", type(average_word_per_time))
+                print("disfluency_counts", type(disfluency_counts))
+                print("session_num", type(st.session_state.session_num))
+
                 put_item(
-                    table=dynamodb.Table('DEBO_evaluation'),
+                    table=dynamodb.Table('DEBO_debate_analysis'),
                     item={
                         'user_id': st.session_state.user_id,
                         'time_stamp': time_stamp,
                         'total_word_count': total_word_count,
-                        'average_word_per_time': average_word_per_time,
+                        'average_word_per_time': Decimal(str(average_word_per_time)),
                         'disfluency_counts': disfluency_counts,
-                        'session_num': st.session_state.session_num,
+                        'session_num': int(st.session_state.session_num),
                     }
                 )
 
