@@ -260,11 +260,11 @@ def page4():
     #########################################################
     # Tab 1 - Total Debate (토론 준비 -> 연습 -> 평가)
     #########################################################
+
     st.header("Total Debate")
     debate_themes = ['Education','Sports','Religion','Justice','Pandemic','Politics','Minority','etc']
 
-    st.write("1. Select a debate theme")
-
+    st.subheader("1. Theme")
     st.session_state.debate_theme = st.selectbox("Choose your debate theme", debate_themes)
 
     if st.session_state.debate_theme == 'Education':
@@ -325,33 +325,41 @@ def page4():
             "Assuming feasibility, THW choose to continuously relive the happiest moment of one’s life."
             ]
 
-    st.write("2. Select a topic")
-    st.session_state.topic = st.selectbox("Choose your topic", topic_list)
+    st.subheader("2. Topic")
+    topic = st.session_state.topic = st.selectbox(
+        label="Choose your topic",
+        options=topic_list,
+        format_func=lambda x: x[:45] + "...",
+        # help="This is help message",
+        # on_change=
+    )
+    st.write("> Topic : ", topic)
 
-    st.write("3. Write 3 cases (Note that these are just a tool to help you structure your thoughts on the content and does not reflect the actual discussion.)")
+    st.subheader("3. Cases")
+    st.caption('These are just a tool to help you structure your thoughts on the content and does not reflect the actual discussion.')
 
     #########################################################
     # Case도 세션에 저장
     #########################################################
     st.session_state.case1 = st.text_area(
-        label="Case 1",
+        label="Write a Case 1",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
         )
     st.session_state.case2 = st.text_area(
-        label="Case 2",
+        label="Write a Case 2",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
     )
     st.session_state.case3 = st.text_area(
-        label="Case 3",
+        label="Write a Case 3",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
         height=100
     )
     case_error_message = st.empty()
 
-    st.write("4. Choose your Side (Pros and Cons)")
-    st.session_state.pros_and_cons = st.selectbox("Choose your Side", ["Pros", "Cons"])
+    st.subheader("4. Side")
+    st.session_state.pros_and_cons = st.selectbox("Choose your Side (Pros and Cons)", ["Pros", "Cons"])
     
     # Save the data to database
     start = st.button(
@@ -491,7 +499,7 @@ def page5():
 
         # bot role, pros and cons
         if st.session_state['pros_and_cons'] == "Pros":
-            bot_role = "Con"
+            bot_role = "Cons"
         else:
             bot_role = "Pros"
 
