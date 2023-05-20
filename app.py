@@ -349,7 +349,6 @@ def page4():
         options=topic_list,
         format_func=lambda x: x[:45] + "...",
         # help="This is help message",
-        # on_change=
     )
     st.write("> Topic : ", topic)
 
@@ -424,13 +423,18 @@ def page4():
             placeholder="Input text here",
             height=100)
         output = st.sidebar.button("Ask")
-        input_error_message = st.empty()
+        error_message = st.empty()
         if output:
             if not user_input:
-                input_error_message.error("Please enter your question")
+                error_message.error("Please enter your question")
                 result = ""
             else:
-                result = gpt_call(user_input)
+                try:
+                    result = gpt_call(user_input)
+                except:
+                    error_message.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+                    time.sleep(0.5)
+                    st.experimental_rerun()
 
                 # save user_prompt and bot_response to database
                 put_item(
@@ -457,7 +461,6 @@ def page4():
 # Page5
 #########################################################
 
-# generate response
 def generate_response(prompt):
     st.session_state['user_debate_history'].append(prompt)
     st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
@@ -466,13 +469,18 @@ def generate_response(prompt):
     st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
     return response
 
-def execute_stt(audio):
+def execute_stt(audio, error_message):
     wav_file = open("audio/audio.wav", "wb")
     wav_file.write(audio.tobytes())
     wav_file.close()
 
     audio_file= open("audio/audio.wav", "rb")
-    user_input = openai.Audio.transcribe("whisper-1", audio_file).text
+    try:
+        user_input = openai.Audio.transcribe("whisper-1", audio_file).text
+    except:
+        error_message.error("Whisper Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+        time.sleep(1)
+        st.experimental_rerun()
     audio_file.close()
     return user_input
 
@@ -491,13 +499,19 @@ def page5():
             placeholder="Input text here",
             height=100)
         output = st.sidebar.button("Ask")
-        input_error_message = st.empty()
+        error_message = st.empty()
         if output:
             if not user_input:
-                input_error_message.error("Please enter your question")
+                error_message.error("Please enter your question")
                 result = ""
             else:
-                result = gpt_call(user_input)
+                try:
+                    result = gpt_call(user_input)
+                except:
+                    error_message.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+                    time.sleep(0.5)
+                    st.experimental_rerun()
+                
                 put_item(
                     table=dynamodb.Table('DEBO_gpt_ask'),
                     item={
@@ -516,6 +530,9 @@ def page5():
             placeholder="(Answer will be shown here)",
             value=result,
             height=400)
+
+    # Chat-GPT api error handling
+    gpt_error_top = st.empty()
 
     # default system prompt settings
     if not st.session_state['total_debate_history']:
@@ -539,7 +556,13 @@ def page5():
         st.session_state['total_debate_history'] = [
             {"role": "system", "content": debate_preset}
         ]
-        response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
+        try:
+            response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
+        except:
+            gpt_error_top.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+            time.sleep(1)
+            st.experimental_rerun()
+            
         st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
         st.session_state['bot_debate_history'].append(response)
 
@@ -551,6 +574,8 @@ def page5():
 
     # container for chat history
     response_container = st.container()
+    # Chat-GPT & Whisper api error handling
+    openai_error_bottom = st.empty()
     # container for text box
     container = st.container()
     reload = False
@@ -564,14 +589,19 @@ def page5():
                 audio = np.array([])
 
             #user_input = st.text_area("You:", key='input', height=100)
-            submit_buttom = st.form_submit_button(label='Send')
+            submit_buttom = st.form_submit_button(label='💬 Send')
             send_error_message = st.empty()
         
         #if submit_buttom and user_input:
         if submit_buttom:
             if audio.any():
-                user_input = execute_stt(audio)
-                response = generate_response(user_input)
+                user_input = execute_stt(audio, openai_error_bottom)
+                try :
+                    response = generate_response(user_input)
+                except:
+                    openai_error_bottom.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+                    time.sleep(1)
+                    st.experimental_rerun()
                 st.session_state['pre_audio'] = audio
 
                 debate_main_latest_data = get_lastest_item(
