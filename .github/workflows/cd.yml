@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+    paths-ignore: [".github/**"]
 
   workflow_dispatch:
 
@@ -14,7 +15,11 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          lfs: true
+          lfs: true      
+      - name: Add remote
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: git remote add space https://DEBO-PROJECT:$HF_TOKEN@huggingface.co/spaces/DEBO-PROJECT/DEBO-DEV
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
