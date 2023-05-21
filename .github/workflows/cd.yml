@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-    paths-ignore: ["/README.md"]
 
   workflow_dispatch:
 
@@ -19,5 +18,5 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://Ridealist:$HF_TOKEN@huggingface.co/spaces/Ridealist/chat_bot main
+        run: git push https://DEBO-PROJECT:$HF_TOKEN@huggingface.co/spaces/DEBO-PROJECT/DEBO-DEV master
           
