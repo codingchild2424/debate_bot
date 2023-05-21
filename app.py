@@ -344,7 +344,7 @@ def page4():
     topic = st.session_state.topic = st.selectbox(
         label="Choose your topic",
         options=topic_list,
-        format_func=lambda x: x[:45] + "...",
+        format_func=lambda x: x[:35] + "...",
         # help="This is help message",
     )
     st.write("> Topic : ", topic)
