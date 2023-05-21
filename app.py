@@ -8,6 +8,7 @@ from collections import Counter
 from streamlit_chat import message
 
 from bots.judgement_bot import debate_judgement
+from bots.perfect_case_bot import perfect_case_selector
 import time
 from time import strftime
 
@@ -93,6 +94,9 @@ if "pre_audio" not in st.session_state:
 if "session_num" not in st.session_state:
     st.session_state.session_num = 0
 
+if "judgement_result" not in st.session_state:
+    st.session_state.judgement_result = ""
+
 
 #########################################################
 # Save function (placeholder)
@@ -161,9 +165,11 @@ def page_n_1_controller():
 # Page 1
 #########################################################
 def page1():
-    _, _, _, home  = st.columns([5, 5, 1, 1])
-    with home:
-        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
+
+    # 첫페이지는 home이 따로 필요없을 것 같아서 주석처리함
+    #_, _, _, home  = st.columns([5, 5, 1, 1])
+    # with home:
+    #     st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     st.header('User Info')
     st.session_state.user_id = st.text_input(
@@ -451,23 +457,38 @@ def page4():
 #########################################################
 
 def generate_response(prompt):
+
     st.session_state['user_debate_history'].append(prompt)
     st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
-    response = gpt_call_context(st.session_state['total_debate_history'])
+
+    if len(prompt.split()) < 10:
+        response = "Please speak longer!"
+    else:
+        response = gpt_call_context(st.session_state['total_debate_history'])
+    
     st.session_state['bot_debate_history'].append(response)
     st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
     return response
 
 def execute_stt(audio, error_message):
-    wav_file = open("audio/audio.wav", "wb")
+
+    # audio 기록 누적
+    #user_audio_path = "audio/" + str(st.session_state.user_id) + "_" + str(st.session_state.session_num) + "_" + str(time.time()) + ".wav"
+    # audio 기록을 누적하고 싶지 않다면
+    user_audio_path = "audio/audio.wav"
+
+    wav_file = open(user_audio_path, "wb")
     wav_file.write(audio.tobytes())
-    wav_file.close()
+
     try:
-        user_input = whisper_transcribe(audio)
+        user_input = whisper_transcribe(wav_file)
     except:
         error_message.error("Whisper Error : The engine is currently overloaded, it will be auto-reloaded in a second")
         time.sleep(1)
         st.experimental_rerun()
+
+    # close file
+    wav_file.close()
 
     return user_input
 
@@ -583,8 +604,10 @@ def page5():
         if submit_buttom:
             if audio.any():
                 user_input = execute_stt(audio, openai_error_bottom)
+
                 try :
                     response = generate_response(user_input)
+                    print("response", response)
                 except:
                     openai_error_bottom.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
                     time.sleep(1)
@@ -670,48 +693,59 @@ def page6():
 
     st.write('Note that evaluation using GPT is an experimental feature. Please check it out and give us your feedback.')
 
-    tab1, tab2 = st.tabs(['Debate Evaluation', 'Debate Analysis'])
+    tab1, tab2, tab3 = st.tabs(['Debate Evaluation', 'Perfect Case', 'Debate Analysis'])
 
     with tab1:
         st.header("Debate Evaluation")
-        
-        debate_themes = ['User-Bot', "User", "Bot"]
 
         # 전체, 유저, 봇 세 가지 옵션 중에 선택
-        judgement_who = st.selectbox("Choose your debate theme", debate_themes)
+        #judgement_who = st.selectbox("Choose what you want! (Evaluation result / Perfect case on this theme)", debate_themes)
 
-        with st.spinner('Wait for judgement result...'):
-            judgement_result = ""
+        if st.session_state.judgement_result == "":
+            with st.spinner('Wait for judgement result...'):
+                judgement_result = ""
 
-            user_debate_history = "".join(
-                st.session_state.user_debate_history
-            )
-            bot_debate_history = "".join(
-                st.session_state.bot_debate_history
-            )
-
-            judgement_result = debate_judgement(
-                judgement_who, 
-                user_debate_history, 
-                bot_debate_history
+                user_debate_history = "".join(
+                    st.session_state.user_debate_history
+                )
+                bot_debate_history = "".join(
+                    st.session_state.bot_debate_history
                 )
 
-            st.write("Debate Judgement Result")
-            st.write(judgement_result)
+                judgement_result = debate_judgement(
+                    user_debate_history, 
+                    bot_debate_history
+                    )
 
-            if judgement_result != "":
-                put_item(
-                    table=dynamodb.Table('DEBO_evaluation'),
-                    item={
-                        'user_id': st.session_state.user_id,
-                        'time_stamp': time_stamp,
-                        'judgement_text': judgement_result,
-                        'session_num': st.session_state.session_num,
-                    }
-                )
-        st.success('Done!')
+                st.write("Debate Judgement Result")
+                st.write(judgement_result)
+
+                if judgement_result != "":
+                    put_item(
+                        table=dynamodb.Table('DEBO_evaluation'),
+                        item={
+                            'user_id': st.session_state.user_id,
+                            'time_stamp': time_stamp,
+                            'judgement_text': judgement_result,
+                            'session_num': st.session_state.session_num,
+                        }
+                    )
+            st.success('Done!')
+        else:
+            st.write(st.session_state.judgement_result)
 
     with tab2:
+        st.header("Perfect Case")
+
+        perfect_case = perfect_case_selector(
+            st.session_state.debate_theme, 
+            st.session_state.topic
+            )
+
+        st.write(perfect_case)
+
+
+    with tab3:
         st.header('Debate Analysis')
 
         # 유저의 history를 기반으로 발화량, 빈출 단어, 발화 습관 세 가지를 분석
@@ -722,7 +756,10 @@ def page6():
         # 총 단어
         # 텍스트를 단어로 분할합니다.
         # 각 단어의 빈도를 계산합니다.
-        total_word_count = len(user_history)
+
+        # 리스트를 문자열로 변환하고, 공백을 기준으로 단어를 분할합니다.
+        total_word_list = "".join(user_history).split()
+        total_word_count = len(total_word_list)
         #total_word_count = len(user_history.split())
         st.write("Total Word Count: ", total_word_count)
 
@@ -733,11 +770,16 @@ def page6():
 
         # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
         # 빈도 계산
-        frequency = Counter(user_history)
+        frequency = Counter(total_word_list)
         # 가장 빈도가 높은 데이터 출력
-        most_common_data = frequency.most_common(10)
-        print(most_common_data)
-        st.write("Most Common Words: ", most_common_data)
+        most_common_data = frequency.most_common(5)
+
+        st.write("Most Common Words: ")
+        for word, count in most_common_data:
+            st.write(" - ", word, ":", count)
+
+        # print(most_common_data)
+        # st.write("Most Common Words: ", most_common_data)
 
         # 3. 발화 습관: 불필요한 언어습관(아, 음)
         # whisper preprocesser에서 주면
@@ -747,13 +789,6 @@ def page6():
         st.write("Disfluency Counts: ", disfluency_counts)
 
         if total_word_count != "" and average_word_per_time != "" and disfluency_counts != "":
-                
-                print("user_id", type(st.session_state.user_id))
-                print("time_stamp", type(time_stamp))
-                print("total_word_count", type(total_word_count))
-                print("average_word_per_time", type(average_word_per_time))
-                print("disfluency_counts", type(disfluency_counts))
-                print("session_num", type(st.session_state.session_num))
 
                 put_item(
                     table=dynamodb.Table('DEBO_debate_analysis'),
@@ -799,36 +834,41 @@ def page7():
         # 전체, 유저, 봇 세 가지 옵션 중에 선택
         judgement_who = st.selectbox("Choose your debate theme", debate_themes)
 
-        with st.spinner('Wait for judgement result...'):
-            judgement_result = ""
+        if st.session_state.judgement_result == "":
+            with st.spinner('Wait for judgement result...'):
+                judgement_result = ""
 
-            user_debate_history = "".join(
-                st.session_state.user_debate_history
-            )
-            bot_debate_history = "".join(
-                st.session_state.bot_debate_history
-            )
-
-            judgement_result = debate_judgement(
-                judgement_who, 
-                user_debate_history, 
-                bot_debate_history
+                user_debate_history = "".join(
+                    st.session_state.user_debate_history
                 )
-            
-            st.write("Debate Judgement Result")
-            st.write(judgement_result)
+                bot_debate_history = "".join(
+                    st.session_state.bot_debate_history
+                )
 
-            if judgement_result:
-                    put_item(
-                        table=dynamodb.Table('DEBO_evaluation'),
-                        item={
-                            'user_id': st.session_state.user_id,
-                            'time_stamp': time_stamp,
-                            'judgement_text': judgement_result,
-                            'session_num': int(st.session_state.session_num),
-                        }
+                judgement_result = debate_judgement(
+                    judgement_who, 
+                    user_debate_history, 
+                    bot_debate_history
                     )
-            st.success('Done!')
+                
+                st.session_state.judgement_result = judgement_result
+                
+                st.write("Debate Judgement Result")
+                st.write(judgement_result)
+
+                if judgement_result:
+                        put_item(
+                            table=dynamodb.Table('DEBO_evaluation'),
+                            item={
+                                'user_id': st.session_state.user_id,
+                                'time_stamp': time_stamp,
+                                'judgement_text': judgement_result,
+                                'session_num': int(st.session_state.session_num),
+                            }
+                        )
+                st.success('Done!')
+        else:
+            st.write(st.session_state.judgement_result)
 
     with tab2:
         st.header('Debate Analysis')
