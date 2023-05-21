@@ -371,6 +371,7 @@ def page4():
     # Save the data to database
     start = st.button(
         label="Start Debate",
+        type='primary',
         on_click=put_item(
             table=dynamodb.Table('DEBO_debate_setting'),
             item={
