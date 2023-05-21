@@ -7,11 +7,6 @@ from langchain.prompts import PromptTemplate
 from modules.gpt_modules import gpt_call
 from dotenv import dotenv_values
 
-"""
-apt-get update
-apt-get install ffmpeg
-"""
-
 config = dotenv_values(".env")
 
 if config:
