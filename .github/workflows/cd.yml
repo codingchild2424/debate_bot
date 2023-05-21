@@ -23,5 +23,5 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://DEBO-PROJECT:$HF_TOKEN@huggingface.co/spaces/DEBO-PROJECT/DEBO-DEV main
+        run: git push --force https://DEBO-PROJECT:$HF_TOKEN@huggingface.co/spaces/DEBO-PROJECT/DEBO-DEV main
           
