@@ -62,6 +62,9 @@ if "case3" not in st.session_state:
 if "page2_tab" not in st.session_state:
     st.session_state.page2_tab = "tab1"
 
+if "ask_gpt_prev_response" not in st.session_state:
+    st.session_state.ask_gpt_prev_response = ""
+
 if "total_debate_history" not in st.session_state:
     st.session_state.total_debate_history = []
 
@@ -422,13 +425,14 @@ def page4():
         if output:
             if not user_input:
                 error_message.error("Please enter your question")
-                result = ""
+                result = st.session_state.ask_gpt_prev_response
             else:
                 try:
                     result = gpt_call(user_input)
+                    st.session_state.ask_gpt_prev_response = result
                 except:
                     error_message.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
-                    time.sleep(0.5)
+                    time.sleep(1.5)
                     st.experimental_rerun()
 
                 # save user_prompt and bot_response to database
@@ -444,7 +448,7 @@ def page4():
                 )
 
         else:
-            result = ""
+            result = st.session_state.ask_gpt_prev_response
 
         st.sidebar.text_area(
             label="Answer", 
@@ -511,13 +515,14 @@ def page5():
         if output:
             if not user_input:
                 error_message.error("Please enter your question")
-                result = ""
+                result = st.session_state.ask_gpt_prev_response
             else:
                 try:
                     result = gpt_call(user_input)
+                    st.session_state.ask_gpt_prev_response = result
                 except:
                     error_message.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
-                    time.sleep(0.5)
+                    time.sleep(1.5)
                     st.experimental_rerun()
                 
                 put_item(
@@ -531,7 +536,7 @@ def page5():
                     }
                 )
         else:
-            result = ""
+            result = st.session_state.ask_gpt_prev_response
 
         st.sidebar.text_area(
             label="Answer", 
