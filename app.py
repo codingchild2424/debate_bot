@@ -1,6 +1,5 @@
 import streamlit as st
 import numpy as np
-import openai
 import pprint
 from decimal import Decimal
 
@@ -8,29 +7,17 @@ from gtts import gTTS
 from collections import Counter
 from streamlit_chat import message
 
-# db_modules
-from modules.db_modules import get_db, put_item, get_item, get_lastest_item
-
-from dotenv import dotenv_values
 from bots.judgement_bot import debate_judgement
-from collections import Counter
 import time
 from time import strftime
 
 from audiorecorder import audiorecorder
 
 # modules
+from modules.db_modules import get_db, put_item, get_item, get_lastest_item
 from modules.gpt_modules import gpt_call, gpt_call_context
-#from modules.whisper_modules import transcribe
+from modules.whisper_modules import whisper_transcribe
 
-config = dotenv_values(".env")
-
-openai.organization = config.get('OPENAI_ORGANIZATION')
-openai.api_key = config.get('OPENAI_API_KEY')
-
-
-#openai.organization = st.secrets['OPENAI_ORGANIZATION']
-#openai.api_key = st.secrets['OPENAI_API_KEY']
 
 #########################################################
 # GET DB
@@ -117,7 +104,7 @@ def save_info(user_id):
     print("User ID:", user_id)
 
 # Session state
-#session_state = SessionState.get(user_id="", openAI_token="", debate_theme="")
+# session_state = SessionState.get(user_id="", openAI_token="", debate_theme="")
 def write_info():
     st.write('You choose', st.session_state.topic_list)
 
@@ -128,11 +115,8 @@ def page_1_2_controller():
         st.warning('Please fill in all the required fields.')
     else:
         st.session_state.page = "Page 2"
-        print("save info")
-
         save_info(st.session_state.user_id)
         
-
         #########################################################
         # Session Update
         #########################################################
@@ -177,21 +161,23 @@ def page_n_1_controller():
 # Page 1
 #########################################################
 def page1():
-    _, _, pre, home  = st.columns([5, 5, 1, 1])
+    _, _, _, home  = st.columns([5, 5, 1, 1])
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     st.header('User Info')
     st.session_state.user_id = st.text_input(
-        label="User ID",
+        label='User ID',
+        # key='user_id',
         max_chars=100,
-        placeholder="Enter user ID"
-        )
+        placeholder="Enter user ID",
+    )
     
     st.button(
         label='Next',
+        type='primary',
         on_click=page_1_2_controller
-        )
+    )
 
 #########################################################
 # Page 2
@@ -199,9 +185,9 @@ def page1():
 def page2():
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_n_1_controller)
+        st.button("🔙", on_click=page_n_1_controller, use_container_width=True)
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     st.header("Choose Option")
     option_result = st.selectbox("Choose your option", ["Total Debate", "Evaluation Only & Analyzing Utterances"])
@@ -214,6 +200,7 @@ def page2():
 
     st.button(
         label='Next',
+        type='primary',
         on_click=page_control_func
     )
         
@@ -237,13 +224,14 @@ def page3():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_1_2_controller)
+        st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
     st.header("Debate History")
 
     st.button(
         label=f'🚀 Start new debate',
+        type='primary',
         on_click=page_3_4_controller
     )
     st.write("_"*50)
@@ -275,9 +263,9 @@ def page4():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_2_3_controller)
+        st.button("🔙", on_click=page_2_3_controller, use_container_width=True)
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     st.header("Total Debate")
     debate_themes = ['Education','Sports','Religion','Justice','Pandemic','Politics','Minority','etc']
@@ -473,15 +461,13 @@ def execute_stt(audio, error_message):
     wav_file = open("audio/audio.wav", "wb")
     wav_file.write(audio.tobytes())
     wav_file.close()
-
-    audio_file= open("audio/audio.wav", "rb")
     try:
-        user_input = openai.Audio.transcribe("whisper-1", audio_file).text
+        user_input = whisper_transcribe(audio)
     except:
         error_message.error("Whisper Error : The engine is currently overloaded, it will be auto-reloaded in a second")
         time.sleep(1)
         st.experimental_rerun()
-    audio_file.close()
+
     return user_input
 
 def page5():
@@ -568,9 +554,9 @@ def page5():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_3_4_controller)
+        st.button("🔙", on_click=page_3_4_controller, use_container_width=True)
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     # container for chat history
     response_container = st.container()
@@ -628,11 +614,9 @@ def page5():
                         'turn_num': turn_num,
                     }
                 )
-
             else:
                 send_error_message.error("Please record your voice first", icon="🚨")
                 reload = True
-                print("Nothing to transcribe")
 
     with response_container:
         message(st.session_state['bot_debate_history'][0], key='0_bot')
@@ -657,6 +641,7 @@ def page5():
 
     st.button(
         label="Next",
+        type="primary",
         on_click=page_5_6_controller
     )
 
@@ -675,9 +660,9 @@ def page6():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_4_5_controller)
+        st.button("🔙", on_click=page_4_5_controller, use_container_width=True)
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     # st.tab
     st.header('Total Debate Evaluation')
@@ -797,9 +782,9 @@ def page7():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:   
-        st.button("🔙", on_click=page_1_2_controller)
+        st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
     with home:
-        st.button("🔝", on_click=page_n_1_controller)
+        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     st.header('Total Debate Evaluation')
 
