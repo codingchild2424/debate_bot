@@ -1,6 +1,13 @@
+---
+title: Debate With Gpt (DEV)
+emoji: 💻
+colorFrom: blue
+colorTo: green
+sdk: streamlit
+sdk_version: 1.19.0
+app_file: app.py
+pinned: false
+license: openrail
+---
 
-
-# ffmpeg
-
-apt-get update
-apt-get install ffmpeg
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
