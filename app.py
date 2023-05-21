@@ -161,9 +161,11 @@ def page_n_1_controller():
 # Page 1
 #########################################################
 def page1():
-    _, _, _, home  = st.columns([5, 5, 1, 1])
-    with home:
-        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
+
+    # 첫페이지는 home이 따로 필요없을 것 같아서 주석처리함
+    #_, _, _, home  = st.columns([5, 5, 1, 1])
+    # with home:
+    #     st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
     st.header('User Info')
     st.session_state.user_id = st.text_input(
@@ -450,23 +452,37 @@ def page4():
 #########################################################
 
 def generate_response(prompt):
+
     st.session_state['user_debate_history'].append(prompt)
     st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
-    response = gpt_call_context(st.session_state['total_debate_history'])
+
+    if len(prompt.split()) < 10:
+        response = "Please speak longer!"
+    else:
+        response = gpt_call_context(st.session_state['total_debate_history'])
+    
     st.session_state['bot_debate_history'].append(response)
     st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
     return response
 
 def execute_stt(audio, error_message):
-    wav_file = open("audio/audio.wav", "wb")
+
+    # 아무 말도 입력되지 않았을때, 과거의 audio 파일이 입력되는 현상이 있었음
+    # 오디오 파일의 이름을 자동으로 변경하도록 설정함 ([user_id]_[sesssion_num]_[real_time_stamp].wav)
+    user_audio_path = "audio/audio.wav" #"audio/" + str(st.session_state.user_id) + "_" + str(st.session_state.session_num) + "_" + str(time.time()) + ".wav"
+
+    wav_file = open(user_audio_path, "wb")
     wav_file.write(audio.tobytes())
-    wav_file.close()
+    #wav_file.close()
+
     try:
-        user_input = whisper_transcribe(audio)
+        user_input = whisper_transcribe(wav_file)
     except:
         error_message.error("Whisper Error : The engine is currently overloaded, it will be auto-reloaded in a second")
         time.sleep(1)
         st.experimental_rerun()
+
+    wav_file.close()
 
     return user_input
 
@@ -582,8 +598,10 @@ def page5():
         if submit_buttom:
             if audio.any():
                 user_input = execute_stt(audio, openai_error_bottom)
+
                 try :
                     response = generate_response(user_input)
+                    print("response", response)
                 except:
                     openai_error_bottom.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
                     time.sleep(1)
@@ -721,7 +739,10 @@ def page6():
         # 총 단어
         # 텍스트를 단어로 분할합니다.
         # 각 단어의 빈도를 계산합니다.
-        total_word_count = len(user_history)
+        total_user_turn = len(user_history)
+        total_word_count = len(
+            "".join(user_history).split() # 리스트를 문자열로 변환하고, 공백을 기준으로 단어를 분할합니다.
+            )
         #total_word_count = len(user_history.split())
         st.write("Total Word Count: ", total_word_count)
 
