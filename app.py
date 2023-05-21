@@ -467,13 +467,13 @@ def generate_response(prompt):
 
 def execute_stt(audio, error_message):
 
-    # 아무 말도 입력되지 않았을때, 과거의 audio 파일이 입력되는 현상이 있었음
-    # 오디오 파일의 이름을 자동으로 변경하도록 설정함 ([user_id]_[sesssion_num]_[real_time_stamp].wav)
-    user_audio_path = "audio/audio.wav" #"audio/" + str(st.session_state.user_id) + "_" + str(st.session_state.session_num) + "_" + str(time.time()) + ".wav"
+    # audio 기록 누적
+    user_audio_path = "audio/" + str(st.session_state.user_id) + "_" + str(st.session_state.session_num) + "_" + str(time.time()) + ".wav"
+    # audio 기록을 누적하고 싶지 않다면
+    # user_audio_path = "audio/audio.wav"
 
     wav_file = open(user_audio_path, "wb")
     wav_file.write(audio.tobytes())
-    #wav_file.close()
 
     try:
         user_input = whisper_transcribe(wav_file)
@@ -482,6 +482,7 @@ def execute_stt(audio, error_message):
         time.sleep(1)
         st.experimental_rerun()
 
+    # close file
     wav_file.close()
 
     return user_input
