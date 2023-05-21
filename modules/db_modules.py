@@ -1,15 +1,17 @@
-
 import boto3
+import streamlit as st
+
 from boto3.dynamodb.conditions import Key
 from dotenv import dotenv_values
 
 config = dotenv_values(".env")
 
-AWS_ACCESS_KEY_ID = config.get('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = config.get('AWS_SECRET_ACCESS_KEY')
-
-# AWS_ACCESS_KEY_ID = os.environ['AWS_ACCESS_KEY_ID']
-# AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
+if config:
+    AWS_ACCESS_KEY_ID = config.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = config.get('AWS_SECRET_ACCESS_KEY')
+else:
+    AWS_ACCESS_KEY_ID = st.secrets['AWS_ACCESS_KEY_ID'] 
+    AWS_SECRET_ACCESS_KEY = st.secrets['AWS_SECRET_ACCESS_KEY']
 
 
 def get_db():

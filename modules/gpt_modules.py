@@ -1,11 +1,17 @@
 import openai
+import streamlit as st
 
 from dotenv import dotenv_values
 
 config = dotenv_values(".env")
 
-openai.organization = config.get('OPENAI_ORGANIZATION')
-openai.api_key = config.get('OPENAI_API_KEY')
+if config:
+    openai.organization = config.get('OPENAI_ORGANIZATION')
+    openai.api_key = config.get('OPENAI_API_KEY')
+else:
+    openai.organization = st.secrets['OPENAI_ORGANIZATION']
+    openai.api_key = st.secrets['OPENAI_API_KEY']
+
 
 def gpt_call(prompt, role="user"):
     response = openai.ChatCompletion.create(

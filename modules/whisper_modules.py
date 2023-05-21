@@ -1,9 +1,11 @@
-from dotenv import dotenv_values
 import openai
 import os
+import random
+import streamlit as st
+
 from langchain.prompts import PromptTemplate
 from modules.gpt_modules import gpt_call
-import random
+from dotenv import dotenv_values
 
 """
 apt-get update
@@ -12,8 +14,13 @@ apt-get install ffmpeg
 
 config = dotenv_values(".env")
 
-openai.organization = config.get('OPENAI_ORGANIZATION')
-openai.api_key = config.get('OPENAI_API_KEY')
+if config:
+    openai.organization = config.get('OPENAI_ORGANIZATION')
+    openai.api_key = config.get('OPENAI_API_KEY')
+else:
+    openai.organization = st.secrets['OPENAI_ORGANIZATION'] #config.get('OPENAI_ORGANIZATION')
+    openai.api_key = st.secrets['OPENAI_API_KEY'] #config.get('OPENAI_API_KEY')
+
 
 def debate_in_sound(audio):
     os.rename(audio, audio + '.wav')
