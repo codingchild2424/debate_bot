@@ -92,6 +92,9 @@ if "debate_time" not in st.session_state:
 if "pre_audio" not in st.session_state:
     st.session_state.pre_audio = np.array([])
 
+if "disabled" not in st.session_state:
+    st.session_state.disabled = True
+
 
 # for db session number
 if "session_num" not in st.session_state:
@@ -100,46 +103,12 @@ if "session_num" not in st.session_state:
 if "judgement_result" not in st.session_state:
     st.session_state.judgement_result = ""
 
-
 #########################################################
-# Save function (placeholder)
+# Page Controller
 #########################################################
-def save_info(user_id):
-    # You can add the code to save the submitted info (e.g., to a database)
-    st.session_state.user_id = user_id
-
-    print("User ID:", user_id)
-
-# Session state
-# session_state = SessionState.get(user_id="", openAI_token="", debate_theme="")
-def write_info():
-    st.write('You choose', st.session_state.topic_list)
-
-# for callback when button is clicked
 def page_1_2_controller():
-    if st.session_state.user_id.strip() == "":
-        st.session_state.page = "Page 1"
-        st.warning('Please fill in all the required fields.')
-    else:
-        st.session_state.page = "Page 2"
-        save_info(st.session_state.user_id)
-        
-        #########################################################
-        # Session Update
-        #########################################################
-        debate_setting = get_lastest_item(
-            table=dynamodb.Table('DEBO_debate_setting'),
-            name_of_partition_key="user_id",
-            value_of_partition_key=st.session_state.user_id,
-            limit_num=1
-        )
-        # Session이 없다면, 0으로 초기화
-        if debate_setting == []:
-            st.session_state.session_num = 0
-        # User의 이전 기록에서 Session이 있다면, Session Number를 가져오고 갱신함
-        else:
-            st.session_state.session_num = debate_setting[0]['session_num']
-
+    st.session_state.page = "Page 2"
+    
 def page_2_3_controller():
     st.session_state.page = "Page 3"
 
@@ -167,27 +136,59 @@ def page_n_1_controller():
 #########################################################
 # Page 1
 #########################################################
+def validate_user_id(input):
+    if input.strip():
+        return True
+    else:
+        return False
+
+def save_info(user_id):
+    # You can add the code to save the submitted info (e.g., to a database)
+    st.session_state.user_id = user_id
+    
+    #########################################################
+    # Session Update
+    #########################################################
+    debate_setting = get_lastest_item(
+        table=dynamodb.Table('DEBO_debate_setting'),
+        name_of_partition_key="user_id",
+        value_of_partition_key=st.session_state.user_id,
+        limit_num=1
+    )
+    # Session이 없다면, 0으로 초기화
+    if not debate_setting:
+        st.session_state.session_num = 0
+    # User의 이전 기록에서 Session이 있다면, Session Number를 가져오고 갱신함
+    else:
+        st.session_state.session_num = debate_setting[0]['session_num']
+
 def page1():
-
-    # 첫페이지는 home이 따로 필요없을 것 같아서 주석처리함
-    #_, _, _, home  = st.columns([5, 5, 1, 1])
-    # with home:
-    #     st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
-
     st.header('User Info')
-    st.session_state.user_id = st.text_input(
+    
+    user_input = st.text_input(
         label='User ID',
         # key='user_id',
         max_chars=100,
         placeholder="Enter user ID",
     )
+    error_message = st.empty()
     
+    if user_input:
+        if validate_user_id(user_input):
+            save_info(user_input)
+            st.session_state.disabled = False
+        else:
+            error_message.error('Please fill in correct User ID')
+            st.session_state.disabled = True
+    else:
+        st.session_state.disabled = True
+
     st.button(
         label='Next',
         type='primary',
+        disabled=st.session_state.disabled,
         on_click=page_1_2_controller
     )
-
 #########################################################
 # Page 2
 #########################################################
