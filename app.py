@@ -265,6 +265,26 @@ def page3():
 #########################################################
 # Page 4
 #########################################################
+def store_debate_data(checked, case1, case2, case3):
+    if checked:
+        st.session_state.case1, st.session_state.case2, st.session_state.case3 = "", "", ""
+    if not checked:
+        st.session_state.case1, st.session_state.case2, st.session_state.case3 = case1, case2, case3
+
+    put_item(
+        table=dynamodb.Table('DEBO_debate_setting'),
+        item={
+            'user_id': st.session_state.user_id,
+            'time_stamp': time_stamp,
+            'debate_theme': st.session_state.debate_theme,
+            'debate_topic': st.session_state.topic,
+            'case1': st.session_state.case1,
+            'case2': st.session_state.case2,
+            'case3': st.session_state.case3,
+            'session_num': st.session_state.session_num,
+            }
+    )
+
 def page4():
     #########################################################
     # Tab 1 - Total Debate (토론 준비 -> 연습 -> 평가)
@@ -354,24 +374,30 @@ def page4():
 
     st.subheader("4. Cases")
     st.caption('📢 These are just a tool to help you structure your thoughts on the content and does not reflect the actual discussion.')
-
+    checked = st.checkbox(
+        label="If you Don't need to write this 3 cases, Please check",
+        key="disabled",
+    )
     #########################################################
     # Case도 세션에 저장
     #########################################################
-    st.session_state.case1 = st.text_area(
+    case1 = st.text_area(
         label="Write a Case 1",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
-        height=150
+        height=150,
+        disabled=st.session_state.disabled
         )
-    st.session_state.case2 = st.text_area(
+    case2 = st.text_area(
         label="Write a Case 2",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
-        height=150
+        height=150,
+        disabled=st.session_state.disabled
     )
-    st.session_state.case3 = st.text_area(
+    case3 = st.text_area(
         label="Write a Case 3",
         placeholder="Each case should be consisted of opinion, reasoning, and example.",
-        height=150
+        height=150,
+        disabled=st.session_state.disabled
     )
     case_error_message = st.empty()
     
@@ -381,35 +407,25 @@ def page4():
     start = st.button(
         label="Start Debate",
         type='primary',
-        on_click=put_item(
-            table=dynamodb.Table('DEBO_debate_setting'),
-            item={
-                'user_id': st.session_state.user_id,
-                'time_stamp': time_stamp,
-                'debate_theme': st.session_state.debate_theme,
-                'debate_topic': st.session_state.topic,
-                'case1': st.session_state.case1,
-                'case2': st.session_state.case2,
-                'case3': st.session_state.case3,
-                'session_num': st.session_state.session_num,
-            }
-            )
+        on_click=store_debate_data,
+        args=(checked, case1, case2, case3)
         )
 
     def validate_case(error_message):
         if not st.session_state.case1 or not st.session_state.case2 or not st.session_state.case3:
-            case_error_message.error("Please fill out above all", icon="🚨")
+            error_message.error("Please fill out above all", icon="🚨")
             return False
         else:
-            # st.session_state.case1 = st.session_statecase1
-            # st.session_state.case2 = st.session_statecase2
-            # st.session_state.case3 = st.session_statecase3
             return True
 
     if start:
-        if validate_case(case_error_message):
+        if checked:
             page_4_5_controller()
             st.experimental_rerun()
+        else:
+            if validate_case(case_error_message):
+                page_4_5_controller()
+                st.experimental_rerun()
 
     #########################################################
     # Ask to GPT
