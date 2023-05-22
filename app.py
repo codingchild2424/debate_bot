@@ -164,7 +164,6 @@ def save_info(user_id):
 
 def page1():
     st.header('User Info')
-    
     user_input = st.text_input(
         label='User ID',
         # key='user_id',
@@ -488,9 +487,12 @@ def execute_stt(audio, error_message):
     try:
         user_input = whisper_transcribe(wav_file)
     except:
-        error_message.error("Whisper Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+        error_message.warning('Whisper Error : The engine is currently overloaded. Please click Rerun button in a second.', icon="⚠️")
         time.sleep(1)
-        st.experimental_rerun()
+        rerun = st.button(label="Rerun")
+        if rerun:
+            st.experimental_rerun()
+        st.stop()
 
     # close file
     wav_file.close()
@@ -522,9 +524,12 @@ def page5():
                     result = gpt_call(user_input)
                     st.session_state.ask_gpt_prev_response = result
                 except:
-                    error_message.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
-                    time.sleep(1.5)
-                    st.experimental_rerun()
+                    st.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
+                    time.sleep(1)
+                    rerun = st.button(label="Rerun")
+                    if rerun:
+                        st.experimental_rerun()
+                    st.stop()
                 
                 put_item(
                     table=dynamodb.Table('DEBO_gpt_ask'),
@@ -545,17 +550,16 @@ def page5():
             value=result,
             height=400)
 
-    # Chat-GPT api error handling
-    gpt_error_top = st.empty()
-
     # default system prompt settings
     if not st.session_state['total_debate_history']:
 
         # bot role, pros and cons
-        if st.session_state['pros_and_cons'] == "Pros":
+        if st.session_state.pros_and_cons == "Pros":
             bot_role = "Cons"
-        else:
+        elif st.session_state.pros_and_cons == "Cons":
             bot_role = "Pros"
+        else:
+            bot_role = "(Not yet Determined)"
 
         debate_preset = "\n".join([
             "Debate Rules: ",
@@ -573,9 +577,12 @@ def page5():
         try:
             response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
         except:
-            gpt_error_top.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+            st.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
             time.sleep(1)
-            st.experimental_rerun()
+            rerun = st.button(label="Rerun")
+            if rerun:
+                st.experimental_rerun()
+            st.stop()
             
         st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
         st.session_state['bot_debate_history'].append(response)
@@ -615,9 +622,12 @@ def page5():
                     response = generate_response(user_input)
                     print("response", response)
                 except:
-                    openai_error_bottom.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
+                    openai_error_bottom.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
                     time.sleep(1)
-                    st.experimental_rerun()
+                    rerun = st.button(label="Rerun")
+                    if rerun:
+                        st.experimental_rerun()
+                    st.stop()
                 st.session_state['pre_audio'] = audio
 
                 debate_main_latest_data = get_lastest_item(
@@ -649,7 +659,15 @@ def page5():
                 reload = True
 
     with response_container:
-        message(st.session_state['bot_debate_history'][0], key='0_bot')
+        try:
+            message(st.session_state['bot_debate_history'][0], key='0_bot')
+        except:
+            st.warning('Server Error : Unexpected Server error occur. Please click Rerun button in a second.', icon="⚠️")
+            time.sleep(1)
+            rerun = st.button(label="Rerun")
+            if rerun:
+                st.experimental_rerun()
+            st.stop()
         if len(st.session_state['bot_debate_history']) == 1:
             text_to_speech = gTTS(text=st.session_state['bot_debate_history'][0], lang='en', slow=False)
             text_to_speech.save(f"audio/bot_{st.session_state['session_num']}_res_0.mp3")
