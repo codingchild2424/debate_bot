@@ -124,11 +124,8 @@ def page_4_5_controller():
 def page_5_6_controller():
     st.session_state.page = "Page 6"
 
-def page_6_7_controller():
-    st.session_state.page = "Page 7"
-
-def page_2_7_controller():
-    st.session_state.page = "Page 7"
+# def page_2_7_controller():
+#     st.session_state.page = "Page 7"
 
 def page_n_1_controller():
     st.session_state.page = "Page 1"
@@ -172,14 +169,15 @@ def page1():
         max_chars=100,
         placeholder="Enter user ID",
     )
-    error_message = st.empty()
+    message = st.empty()
     
     if user_input:
         if validate_user_id(user_input):
             save_info(user_input)
+            message.success('User ID successfully verified!', icon="✅")
             st.session_state.disabled = False
         else:
-            error_message.error('Please fill in correct User ID')
+            message.error('Please fill in correct User ID', icon="🚨")
             st.session_state.disabled = True
     else:
         st.session_state.disabled = True
@@ -206,13 +204,17 @@ def page2():
     # add controller
     if option_result == "Total Debate":
         page_control_func = page_2_3_controller
+        st.session_state.disabled = False
     elif option_result == "Evaluation Only & Analyzing Utterances":
-        page_control_func = page_2_7_controller
+        st.info('Sorry:( This function will be developed soon.', icon="ℹ️")
+        page_control_func = page_1_2_controller
+        st.session_state.disabled = True
 
     st.button(
         label='Next',
         type='primary',
-        on_click=page_control_func
+        disabled=st.session_state.disabled,
+        on_click=page_control_func,
     )
         
 
@@ -231,6 +233,7 @@ def page3():
     if not debate_history:
         st.info('There is no previous debate history', icon="ℹ️")
 
+    #TODO delete!
     print(debate_history)
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
@@ -638,6 +641,7 @@ def page5():
 
                 try :
                     response = generate_response(user_input)
+                    #TODO delete
                     print("response", response)
                 except:
                     openai_error_bottom.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
@@ -654,7 +658,7 @@ def page5():
                     value_of_partition_key=st.session_state.user_id,
                     limit_num=1
                 )
-
+                #TODO delete
                 print(f'debate_main_latest_data : {debate_main_latest_data}')
                 if not debate_main_latest_data:
                     turn_num = 0
@@ -711,6 +715,7 @@ def page5():
         on_click=page_5_6_controller
     )
 
+#TODO must have to delete!!!!
 print("#"*80)
 pprint.pprint(st.session_state.to_dict())
 print("#"*80)
@@ -847,118 +852,126 @@ def page6():
         # 유저와 봇의 대화 데이터가 세션에 남아있음
         # st.session_state.debate_history
     
+    ############################################
+    # Visualization
+    ############################################
+
+    # 이전에 기록된 값이 있다면, 그래프를 그립니다.
+    # 이전에 기록된 값이 없다면, 그래프를 그리지 않습니다.
+
 
 #########################################################
 # Page7
 #########################################################
 
-def page7():
+# def page7():
 
-    # end time
-    st.session_state.end_time = time.time()
-    st.session_state.debate_time = st.session_state.end_time - st.session_state.start_time
+#     # end time
+#     st.session_state.end_time = time.time()
+#     st.session_state.debate_time = st.session_state.end_time - st.session_state.start_time
 
-    _, _, pre, home  = st.columns([5, 5, 1, 1])
-    with pre:   
-        st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
-    with home:
-        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
+#     _, _, pre, home  = st.columns([5, 5, 1, 1])
+#     with pre:   
+#         st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
+#     with home:
+#         st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
-    st.header('Total Debate Evaluation')
+#     st.header('Total Debate Evaluation')
 
-    tab1, tab2 = st.tabs(['Debate Judgement', 'Debate Analysis'])
+#     tab1, tab2 = st.tabs(['Debate Judgement', 'Debate Analysis'])
 
-    with tab1:
-        st.header("Debate Evaluation")
+#     with tab1:
+#         st.header("Debate Evaluation")
         
-        debate_themes = ['User-Bot', "User", "Bot"]
+#         debate_themes = ['User-Bot', "User", "Bot"]
 
-        # 전체, 유저, 봇 세 가지 옵션 중에 선택
-        judgement_who = st.selectbox("Choose your debate theme", debate_themes)
+#         # 전체, 유저, 봇 세 가지 옵션 중에 선택
+#         judgement_who = st.selectbox("Choose your debate theme", debate_themes)
 
-        if st.session_state.judgement_result == "":
-            with st.spinner('Wait for judgement result...'):
-                judgement_result = ""
+#         if st.session_state.judgement_result == "":
+#             with st.spinner('Wait for judgement result...'):
+#                 judgement_result = ""
 
-                user_debate_history = "".join(
-                    st.session_state.user_debate_history
-                )
-                bot_debate_history = "".join(
-                    st.session_state.bot_debate_history
-                )
+#                 user_debate_history = "".join(
+#                     st.session_state.user_debate_history
+#                 )
+#                 bot_debate_history = "".join(
+#                     st.session_state.bot_debate_history
+#                 )
 
-                judgement_result = debate_judgement(
-                    judgement_who, 
-                    user_debate_history, 
-                    bot_debate_history
-                    )
+#                 judgement_result = debate_judgement(
+#                     judgement_who, 
+#                     user_debate_history, 
+#                     bot_debate_history
+#                     )
                 
-                st.session_state.judgement_result = judgement_result
+#                 st.session_state.judgement_result = judgement_result
                 
-                st.write("Debate Judgement Result")
-                st.write(judgement_result)
+#                 st.write("Debate Judgement Result")
+#                 st.write(judgement_result)
 
-                if judgement_result:
-                        put_item(
-                            table=dynamodb.Table('DEBO_evaluation'),
-                            item={
-                                'user_id': st.session_state.user_id,
-                                'time_stamp': time_stamp,
-                                'judgement_text': judgement_result,
-                                'session_num': int(st.session_state.session_num),
-                            }
-                        )
-                st.success('Done!')
-        else:
-            st.write(st.session_state.judgement_result)
+#                 if judgement_result:
+#                         put_item(
+#                             table=dynamodb.Table('DEBO_evaluation'),
+#                             item={
+#                                 'user_id': st.session_state.user_id,
+#                                 'time_stamp': time_stamp,
+#                                 'judgement_text': judgement_result,
+#                                 'session_num': int(st.session_state.session_num),
+#                             }
+#                         )
+#                 st.success('Done!')
+#         else:
+#             st.write(st.session_state.judgement_result)
 
-    with tab2:
-        st.header('Debate Analysis')
+#     with tab2:
+#         st.header('Debate Analysis')
 
-        # 유저의 history를 기반으로 발화량, 빈출 단어, 발화 습관 세 가지를 분석
-        user_history = st.session_state.user_debate_history
+#         # 유저의 history를 기반으로 발화량, 빈출 단어, 발화 습관 세 가지를 분석
+#         user_history = st.session_state.user_debate_history
 
-        # 1. 발화량: 총 단어, 평균 속도(단어/시간)를 평균 발화량 혹은 참고 지표와 비교해 제시
+#         # 1. 발화량: 총 단어, 평균 속도(단어/시간)를 평균 발화량 혹은 참고 지표와 비교해 제시
 
-        # 총 단어
-        # 텍스트를 단어로 분할합니다.
-        # 각 단어의 빈도를 계산합니다.
-        total_word_count = len(user_history)
-        #total_word_count = len(user_history.split())
-        st.write("Total Word Count: ", total_word_count)
+#         # 총 단어
+#         # 텍스트를 단어로 분할합니다.
+#         # 각 단어의 빈도를 계산합니다.
+#         total_word_count = len(user_history)
+#         #total_word_count = len(user_history.split())
+#         st.write("Total Word Count: ", total_word_count)
 
-        # 평균 속도(단어/시간)
-        #user_debate_time = st.session_state.user_debate_time
-        average_word_per_time = total_word_count / st.session_state.debate_time # 시간 단위보고 나중에 수정하기
-        st.write("Average Word Per Time: ", average_word_per_time)
+#         # 평균 속도(단어/시간)
+#         #user_debate_time = st.session_state.user_debate_time
+#         average_word_per_time = total_word_count / st.session_state.debate_time # 시간 단위보고 나중에 수정하기
+#         st.write("Average Word Per Time: ", average_word_per_time)
 
-        # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
-        # 빈도 계산
-        frequency = Counter(user_history)
-        # 가장 빈도가 높은 데이터 출력
-        most_common_data = frequency.most_common(10)
-        print(most_common_data)
-        st.write("Most Common Words: ", most_common_data)
+#         # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
+#         # 빈도 계산
+#         frequency = Counter(user_history)
+#         # 가장 빈도가 높은 데이터 출력
+#         most_common_data = frequency.most_common(10)
+#
+#         print(most_common_data)
+#         st.write("Most Common Words: ", most_common_data)
 
-        # 3. 발화 습관: 불필요한 언어습관(아, 음)
-        # whisper preprocesser에서 주면
-        disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
-        # Count the disfluency words
-        disfluency_counts = sum(user_word in disfluency_word_list for user_word in user_history)
-        st.write("Disfluency Counts: ", disfluency_counts)
+#         # 3. 발화 습관: 불필요한 언어습관(아, 음)
+#         # whisper preprocesser에서 주면
+#         disfluency_word_list = ['eh', 'umm', 'ah', 'uh', 'er', 'erm', 'err']
+#         # Count the disfluency words
+#         disfluency_counts = sum(user_word in disfluency_word_list for user_word in user_history)
+#         st.write("Disfluency Counts: ", disfluency_counts)
 
-        if total_word_count != "" and average_word_per_time != "" and disfluency_counts != "":
-                put_item(
-                    table=dynamodb.Table('DEBO_evaluation'),
-                    item={
-                        'user_id': st.session_state.user_id,
-                        'time_stamp': time_stamp,
-                        'total_word_count': total_word_count,
-                        'average_word_per_time': Decimal(str(average_word_per_time)),
-                        'disfluency_counts': disfluency_counts,
-                        'session_num': int(st.session_state.session_num),
-                    }
-                )
+#         if total_word_count != "" and average_word_per_time != "" and disfluency_counts != "":
+#                 put_item(
+#                     table=dynamodb.Table('DEBO_evaluation'),
+#                     item={
+#                         'user_id': st.session_state.user_id,
+#                         'time_stamp': time_stamp,
+#                         'total_word_count': total_word_count,
+#                         'average_word_per_time': Decimal(str(average_word_per_time)),
+#                         'disfluency_counts': disfluency_counts,
+#                         'session_num': int(st.session_state.session_num),
+#                     }
+#                 )
 
         # 유저와 봇의 대화 데이터가 세션에 남아있음
         # st.session_state.debate_history
@@ -981,14 +994,13 @@ pages = {
     "Page 4": page4, # 토론 세부사항 설정
     "Page 5": page5, # Total Debate
     "Page 6": page6, # Evaluation Only
-    "Page 7": page7, # Analyzing Utterances
+    # "Page 7": page7, # Analyzing Utterances
 }
 
 selection = st.session_state.page
+#TODO delete!
 print("selection:", selection)
 
 page = pages[selection]
 # Execute selected page function
 page()
-
-
