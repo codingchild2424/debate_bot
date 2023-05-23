@@ -15,7 +15,7 @@ from time import strftime
 from audiorecorder import audiorecorder
 
 # modules
-from modules.db_modules import get_db, put_item, get_item, get_lastest_item
+from modules.db_modules import get_db, put_item, get_all_items, get_lastest_item
 from modules.gpt_modules import gpt_call, gpt_call_context
 from modules.whisper_modules import whisper_transcribe
 
@@ -136,8 +136,10 @@ def page_n_1_controller():
 #########################################################
 # Page 1
 #########################################################
-def validate_user_id(input):
-    if input.strip():
+def validate_user_id(id_input):
+    table = dynamodb.Table('DEBO_user')
+    users_set = get_all_items(table, 'user_id')
+    if id_input in users_set:
         return True
     else:
         return False
