@@ -52,10 +52,22 @@ def get_item(table, item):
 
 def get_lastest_item(table, name_of_partition_key, value_of_partition_key, limit_num=10):
 
-    response = table.query (
+    response = table.query(
         KeyConditionExpression=Key(name_of_partition_key).eq(value_of_partition_key),
         ScanIndexForward=False,
         Limit=limit_num
     )
     
     return response['Items']
+
+def get_all_items(table, name_of_key):
+
+    response = table.scan()
+    data = response['Items']
+
+    while 'LastEvaluatedKey' in response:
+        response = table.scan(ExclusiveStartKey=response['LastEvaluatedKey'])
+        data.extend(response['Items'])
+    
+    items = set(d[name_of_key] for d in data)
+    return items
