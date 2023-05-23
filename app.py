@@ -777,12 +777,24 @@ def page6():
     with tab2:
         st.header("Perfect Case")
 
-        perfect_case = perfect_case_selector(
-            st.session_state.debate_theme, 
-            st.session_state.topic
-            )
+        perfect_case_list = [
+            "This house supports the creation of an international court with a mandate to prosecute leaders for health crimes",
+            "This house believes that governments would be justified in heavily pursuing long-termism",
+            "THBT international discussion forums should not self-censor* in an attempt to increase inclusivity to people from countries with stringent freedom-of-speech rules.",
+            ]
 
-        st.write(perfect_case)
+        perfect_case_selected = st.selectbox("Choose the Perfect Case", perfect_case_list)
+
+        perfect_case = perfect_case_selector(
+            perfect_case_selected
+            )
+        
+        perfect_case_url = perfect_case['perfect_case_url']
+        perfect_case_text = perfect_case['perfect_case_text']
+
+        st.video(perfect_case_url)
+
+        st.write(perfect_case_text)
 
 
     with tab3:
