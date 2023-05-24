@@ -19,7 +19,7 @@ from modules.setting_modules import blockPrint
 #########################################################
 # Disabled Console print
 #########################################################
-blockPrint()
+# blockPrint()
 
 #########################################################
 # GET DB
@@ -477,7 +477,7 @@ def generate_response(prompt):
     st.session_state['user_debate_history'].append(prompt)
     st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
 
-    if len(prompt.split()) < 10:
+    if len(prompt.split()) < 5:
         response = "Please speak longer!"
     else:
         response = gpt_call_context(st.session_state['total_debate_history'])
@@ -702,7 +702,6 @@ def page5():
         on_click=page_5_6_controller
     )
 
-#TODO must have to delete!!!!
 print("#"*80)
 pprint.pprint(st.session_state.to_dict())
 print("#"*80)
@@ -724,8 +723,7 @@ def page6():
 
     # st.tab
     st.header('Total Debate Evaluation')
-
-    st.write('Note that evaluation using GPT is an experimental feature. Please check it out and give us your feedback.')
+    st.caption('📢 Note that evaluation using GPT is an experimental feature. Please check it out and give us your feedback.')
 
     tab1, tab2 = st.tabs(['Debate Evaluation', 'Debate Analysis']) ## Delete 'Perfect Case'
 
@@ -736,7 +734,7 @@ def page6():
         #judgement_who = st.selectbox("Choose what you want! (Evaluation result / Perfect case on this theme)", debate_themes)
 
         if st.session_state.judgement_result == "":
-            with st.spinner('Wait for judgement result...'):
+            with st.spinner('Wait for result...'):
                 judgement_result = ""
 
                 user_debate_history = "".join(
@@ -995,7 +993,6 @@ pages = {
 }
 
 selection = st.session_state.page
-#TODO delete!
 print("selection:", selection)
 
 page = pages[selection]
