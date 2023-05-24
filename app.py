@@ -1,20 +1,17 @@
 import streamlit as st
 import numpy as np
 import pprint
-from decimal import Decimal
+import time
 
+from decimal import Decimal
 from gtts import gTTS
 from collections import Counter
 from streamlit_chat import message
-
-from bots.judgement_bot import debate_judgement
-from bots.perfect_case_bot import perfect_case_selector
-import time
-from time import strftime
-
 from audiorecorder import audiorecorder
 
-# modules
+# internal modules
+from bots.judgement_bot import debate_judgement
+from bots.perfect_case_bot import perfect_case_selector
 from modules.db_modules import get_db, put_item, get_all_items, get_lastest_item
 from modules.gpt_modules import gpt_call, gpt_call_context
 from modules.whisper_modules import whisper_transcribe
@@ -30,7 +27,7 @@ dynamodb = get_db()
 # Time Stamp
 #########################################################
 tm = time.localtime()
-time_stamp = strftime('%Y-%m-%d %I:%M:%S %p', tm)
+time_stamp = time.strftime('%Y-%m-%d %I:%M:%S %p', tm)
 
 
 #########################################################
