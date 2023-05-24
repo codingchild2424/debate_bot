@@ -22,6 +22,11 @@ from modules.setting_modules import blockPrint
 blockPrint()
 
 #########################################################
+# Page Configurations
+#########################################################
+st.set_page_config(page_title="Debate With GPT : DEBO")
+
+#########################################################
 # GET DB
 #########################################################
 dynamodb = get_db()
@@ -31,11 +36,6 @@ dynamodb = get_db()
 #########################################################
 tm = time.localtime()
 time_stamp = time.strftime('%Y-%m-%d %I:%M:%S %p', tm)
-
-#########################################################
-# Page Configurations
-#########################################################
-st.set_page_config(page_title="Debate With GPT : DEBO")
 
 #########################################################
 # Initialize session state variables
@@ -443,9 +443,12 @@ def page4():
                     result = gpt_call(user_input)
                     st.session_state.ask_gpt_prev_response = result
                 except:
-                    error_message.error("Chat-GPT Error : The engine is currently overloaded, it will be auto-reloaded in a second")
-                    time.sleep(1.5)
-                    st.experimental_rerun()
+                    st.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
+                    time.sleep(1)
+                    rerun = st.button(label="Rerun", type="primary")
+                    if rerun:
+                        st.experimental_rerun()
+                    st.stop()
 
                 # save user_prompt and bot_response to database
                 put_item(
@@ -499,9 +502,9 @@ def execute_stt(audio, error_message):
     try:
         user_input = whisper_transcribe(wav_file)
     except:
-        error_message.warning('Whisper Error : The engine is currently overloaded. Please click Rerun button in a second.', icon="⚠️")
+        error_message.warning('Whisper Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
         time.sleep(1)
-        rerun = st.button(label="Rerun")
+        rerun = st.button(label="Rerun", type="primary")
         if rerun:
             st.experimental_rerun()
         st.stop()
@@ -536,9 +539,9 @@ def page5():
                     result = gpt_call(user_input)
                     st.session_state.ask_gpt_prev_response = result
                 except:
-                    st.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
+                    st.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
                     time.sleep(1)
-                    rerun = st.button(label="Rerun")
+                    rerun = st.button(label="Rerun", type="primary")
                     if rerun:
                         st.experimental_rerun()
                     st.stop()
@@ -583,19 +586,17 @@ def page5():
         ])
         first_prompt = "Now we're going to start. Summarize the subject and your role. And ask user ready to begin."
 
-        st.session_state['total_debate_history'] = [
-            {"role": "system", "content": debate_preset}
-        ]
         try:
             response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
         except:
-            st.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
+            st.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
             time.sleep(1)
-            rerun = st.button(label="Rerun")
+            rerun = st.button(label="Rerun", type="primary")
             if rerun:
                 st.experimental_rerun()
             st.stop()
-            
+        
+        st.session_state['total_debate_history'].append({"role": "system", "content": debate_preset})
         st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
         st.session_state['bot_debate_history'].append(response)
 
@@ -621,21 +622,20 @@ def page5():
             if np.array_equal(st.session_state['pre_audio'], audio):
                 audio = np.array([])
 
-            #user_input = st.text_area("You:", key='input', height=100)
-            submit_buttom = st.form_submit_button(label='💬 Send')
+            submit_button = st.form_submit_button(label='💬 Send')
             send_error_message = st.empty()
         
-        #if submit_buttom and user_input:
-        if submit_buttom:
+        #if submit_button and user_input:
+        if submit_button:
             if audio.any():
                 user_input = execute_stt(audio, openai_error_bottom)
-
                 try :
                     response = generate_response(user_input)
                 except:
-                    openai_error_bottom.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
+                    openai_error_bottom.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
                     time.sleep(1)
-                    rerun = st.button(label="Rerun")
+                    rerun = st.button(label="Rerun", type="primary")
+                    reload = True
                     if rerun:
                         st.experimental_rerun()
                     st.stop()
@@ -671,27 +671,36 @@ def page5():
         try:
             message(st.session_state['bot_debate_history'][0], key='0_bot')
         except:
-            st.warning('Server Error : Unexpected Server error occur. Please click Rerun button in a second.', icon="⚠️")
+            st.warning('Server Error : Unexpected Server error occur. Please click "Rerun" button below.', icon="⚠️")
             time.sleep(1)
-            rerun = st.button(label="Rerun")
+            reload = True
+            st.session_state['total_debate_history'] = []
+            rerun = st.button(label="Rerun", type="primary")
             if rerun:
                 st.experimental_rerun()
             st.stop()
         if len(st.session_state['bot_debate_history']) == 1:
             text_to_speech = gTTS(text=st.session_state['bot_debate_history'][0], lang='en', slow=False)
-            text_to_speech.save(f"audio/bot_{st.session_state['session_num']}_res_0.mp3")
+            text_to_speech.save(f"audio/ses_{st.session_state['session_num']}_bot_res_0.mp3")
         
-        audio_file = open(f"audio/bot_{st.session_state['session_num']}_res_0.mp3", 'rb')
+        audio_file = open(f"audio/ses_{st.session_state['session_num']}_bot_res_0.mp3", 'rb')
         audio_bytes = audio_file.read()
         st.audio(audio_bytes, format='audio/ogg')
 
-        for i in range(len(st.session_state['user_debate_history'])):
-            message(st.session_state['user_debate_history'][i], is_user=True, key=str(i)+'_user')
-            message(st.session_state['bot_debate_history'][i + 1], key=str(i + 1)+'_bot')
+        #TODO zip_longest() 고려하기!
+        message_pairs = zip(
+            st.session_state['bot_debate_history'][1:],
+            st.session_state['user_debate_history'],
+        )
+        for i, (bot_hist, user_hist) in enumerate(message_pairs):
+            message(user_hist, is_user=True, key=str(i)+'_user')
+            message(bot_hist, key=str(i + 1)+'_bot')
+            # if bot_hist:
+            #TODO 생성된 message와 음성 파일 path를 하나의 객체로 관리하는 방법 고민
             if i == len(st.session_state['bot_debate_history']) - 2 and not reload:
-                text_to_speech = gTTS(text=st.session_state['bot_debate_history'][i + 1], lang='en', slow=False)
-                text_to_speech.save(f"audio/bot_{st.session_state['session_num']}_res_{str(i + 1)}.mp3")
-            audio_file = open(f"audio/bot_{st.session_state['session_num']}_res_{str(i + 1)}.mp3", 'rb')
+                text_to_speech = gTTS(text=bot_hist, lang='en', slow=False)
+                text_to_speech.save(f"audio/ses_{st.session_state['session_num']}_bot_res_{str(i + 1)}.mp3")
+            audio_file = open(f"audio/ses_{st.session_state['session_num']}_bot_res_{str(i + 1)}.mp3", 'rb')
             audio_bytes = audio_file.read()
             st.audio(audio_bytes, format='audio/ogg')
         reload = False
@@ -709,6 +718,14 @@ print("#"*80)
 #########################################################
 # Page6 - Total Debate Evaluation
 #########################################################
+@st.cache_data
+def preprocess_words(user_history):
+    res = " ".join(user_history)
+    res = res.lower()
+    res = res.translate(dict.fromkeys(map(ord, '!"#&\(),./:;<=>@[\\]^_`{|}~')))
+    return res.split()
+
+@st.cache_data
 def get_stop_words():
     file = open("text/stop_words.txt", "r")
     try:
@@ -808,8 +825,8 @@ def page6():
         # 텍스트를 단어로 분할합니다.
         # 각 단어의 빈도를 계산합니다.
 
-        # 리스트를 문자열로 변환하고, 공백을 기준으로 단어를 분할합니다.
-        total_word_list = "".join(user_history).split()
+        # 리스트를 문자열로 변환하고, 전처리를 합니다. 공백을 기준으로 단어를 분할합니다.
+        total_word_list = preprocess_words(user_history)
         total_word_count = len(total_word_list)
         #total_word_count = len(user_history.split())
         st.write("Total Word Count: ", total_word_count)
@@ -821,7 +838,7 @@ def page6():
 
         # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
         # 불용어 제거
-        total_word_list = [word for word in total_word_list not in get_stop_words()]
+        total_word_list = [word for word in total_word_list if word not in get_stop_words()]
         # 빈도 계산
         frequency = Counter(total_word_list)
         # 가장 빈도가 높은 데이터 출력

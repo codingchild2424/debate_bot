@@ -32,4 +32,5 @@ def gpt_call_context(messages):
     )
     output_text = response["choices"][0]["message"]["content"]
 
+    # raise RuntimeError
     return output_text
