@@ -14,8 +14,8 @@ else:
     AWS_SECRET_ACCESS_KEY = st.secrets['AWS_SECRET_ACCESS_KEY']
 
 
+@st.cache_resource
 def get_db():
-
     dynamodb = boto3.resource(
         'dynamodb', 
         region_name='ap-northeast-2',
@@ -26,7 +26,6 @@ def get_db():
     
     return dynamodb
 
-# put_item
 def put_item(table, item):
 
     print("item", item)
@@ -38,7 +37,6 @@ def put_item(table, item):
     else:
         print('Error inserting item')
 
-# get_item
 def get_item(table, item):
 
     response = table.get_item(Key=item)
