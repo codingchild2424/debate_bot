@@ -11,17 +11,20 @@ from audiorecorder import audiorecorder
 
 # internal modules
 from bots.judgement_bot import debate_judgement
-from bots.perfect_case_bot import perfect_case_selector
 from modules.db_modules import get_db, put_item, get_all_items, get_lastest_item
 from modules.gpt_modules import gpt_call, gpt_call_context
 from modules.whisper_modules import whisper_transcribe
+from modules.setting_modules import blockPrint
 
+#########################################################
+# Disabled Console print
+#########################################################
+blockPrint()
 
 #########################################################
 # GET DB
 #########################################################
 dynamodb = get_db()
-
 
 #########################################################
 # Time Stamp
@@ -29,11 +32,10 @@ dynamodb = get_db()
 tm = time.localtime()
 time_stamp = time.strftime('%Y-%m-%d %I:%M:%S %p', tm)
 
-
 #########################################################
 # Page Configurations
 #########################################################
-st.set_page_config(page_title="Streamlit App")
+st.set_page_config(page_title="Debate With GPT : DEBO")
 
 #########################################################
 # Initialize session state variables
@@ -71,9 +73,6 @@ if "user_debate_history" not in st.session_state:
 if "bot_debate_history" not in st.session_state:
     st.session_state.bot_debate_history = []
 
-if "user_debate_time" not in st.session_state:
-    st.session_state.user_debate_time = ""
-
 if "pros_and_cons" not in st.session_state:
     st.session_state.pros_and_cons = ""
 
@@ -86,19 +85,18 @@ if "end_time" not in st.session_state:
 if "debate_time" not in st.session_state:
     st.session_state.debate_time = 0
 
+if "judgement_result" not in st.session_state:
+    st.session_state.judgement_result = ""
+
 if "pre_audio" not in st.session_state:
     st.session_state.pre_audio = np.array([])
 
 if "disabled" not in st.session_state:
     st.session_state.disabled = True
 
-
 # for db session number
 if "session_num" not in st.session_state:
     st.session_state.session_num = 0
-
-if "judgement_result" not in st.session_state:
-    st.session_state.judgement_result = ""
 
 #########################################################
 # Page Controller
@@ -106,14 +104,11 @@ if "judgement_result" not in st.session_state:
 def page_1_2_controller():
     st.session_state.page = "Page 2"
     
-def page_2_3_controller():
-    st.session_state.page = "Page 3"
-
-def page2_tab_controller():
-    st.session_state.page2_tab = "tab2"
-
-def page_3_4_controller():
+def page_2_4_controller():
     st.session_state.page = "Page 4"
+
+# def page_3_4_controller():
+#     st.session_state.page = "Page 4"
 
 def page_4_5_controller():
     st.session_state.page = "Page 5"
@@ -126,6 +121,9 @@ def page_5_6_controller():
 
 def page_n_1_controller():
     st.session_state.page = "Page 1"
+
+def page2_tab_controller():
+    st.session_state.page2_tab = "tab2"
 
 #########################################################
 # Page 1
@@ -200,7 +198,7 @@ def page2():
 
     # add controller
     if option_result == "Total Debate":
-        page_control_func = page_2_3_controller
+        page_control_func = page_2_4_controller
         st.session_state.disabled = False
     elif option_result == "Evaluation Only & Analyzing Utterances":
         st.info('Sorry:( This function will be developed soon.', icon="ℹ️")
@@ -213,56 +211,52 @@ def page2():
         disabled=st.session_state.disabled,
         on_click=page_control_func,
     )
-        
 
 #########################################################
 # Page 3
 #########################################################
-def page3():
-    debate_history = get_lastest_item(
-            table=dynamodb.Table('DEBO_debate_setting'),
-            name_of_partition_key="user_id",
-            value_of_partition_key=st.session_state.user_id,
-            #TODO 전체 보여줄 개수 설정
-            limit_num=10
-        )
+# def page3():
+#     debate_history = get_lastest_item(
+#             table=dynamodb.Table('DEBO_debate_setting'),
+#             name_of_partition_key="user_id",
+#             value_of_partition_key=st.session_state.user_id,
+#             #TODO 전체 보여줄 개수 설정
+#             limit_num=10
+#         )
 
-    if not debate_history:
-        st.info('There is no previous debate history', icon="ℹ️")
+#     if not debate_history:
+#         st.info('There is no previous debate history', icon="ℹ️")
 
-    #TODO delete!
-    print(debate_history)
+#     _, _, pre, home  = st.columns([5, 5, 1, 1])
+#     with pre:
+#         st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
+#     with home:
+#         st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
+#     st.header("Debate History")
 
-    _, _, pre, home  = st.columns([5, 5, 1, 1])
-    with pre:
-        st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
-    with home:
-        st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
-    st.header("Debate History")
+#     st.button(
+#         label=f'🚀 Start new debate',
+#         type='primary',
+#         on_click=page_3_4_controller
+#     )
+#     st.write("_"*50)
 
-    st.button(
-        label=f'🚀 Start new debate',
-        type='primary',
-        on_click=page_3_4_controller
-    )
-    st.write("_"*50)
-
-    num_history = len(debate_history)
-    for i in range(num_history):
-        with st.container():
-            st.write(f"#### {i + 1}")
-            st.write(f"Debate Thema : {debate_history[i]['debate_theme']}")
-            st.write(f"Debate Topic : {debate_history[i]['debate_topic']}")
-            st.write(f"Case 1 : {debate_history[i]['case1']}")
-            st.write(f"Case 2 : {debate_history[i]['case2']}")
-            st.write(f"Case 3 : {debate_history[i]['case3']}")
-            st.write(f"Created at : {debate_history[i]['time_stamp']}")
-            st.button(
-                label='Continue this dabate',
-                key=str(i),
-                on_click=page_4_5_controller
-            )
-            st.write("_"*50)
+#     num_history = len(debate_history)
+#     for i in range(num_history):
+#         with st.container():
+#             st.write(f"#### {i + 1}")
+#             st.write(f"Debate Thema : {debate_history[i]['debate_theme']}")
+#             st.write(f"Debate Topic : {debate_history[i]['debate_topic']}")
+#             st.write(f"Case 1 : {debate_history[i]['case1']}")
+#             st.write(f"Case 2 : {debate_history[i]['case2']}")
+#             st.write(f"Case 3 : {debate_history[i]['case3']}")
+#             st.write(f"Created at : {debate_history[i]['time_stamp']}")
+#             st.button(
+#                 label='Continue this dabate',
+#                 key=str(i),
+#                 on_click=page_4_5_controller
+#             )
+#             st.write("_"*50)
 
 #########################################################
 # Page 4
@@ -294,7 +288,7 @@ def page4():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_2_3_controller, use_container_width=True)
+        st.button("🔙", on_click=page_1_2_controller, use_container_width=True)
     with home:
         st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
@@ -607,7 +601,7 @@ def page5():
 
     _, _, pre, home  = st.columns([5, 5, 1, 1])
     with pre:
-        st.button("🔙", on_click=page_3_4_controller, use_container_width=True)
+        st.button("🔙", on_click=page_2_4_controller, use_container_width=True)
     with home:
         st.button("🔝", on_click=page_n_1_controller, use_container_width=True)
 
@@ -638,8 +632,6 @@ def page5():
 
                 try :
                     response = generate_response(user_input)
-                    #TODO delete
-                    print("response", response)
                 except:
                     openai_error_bottom.warning('Chat-GPT Error : The engine is currently overloaded. Please click Rerun button in a second', icon="⚠️")
                     time.sleep(1)
@@ -655,8 +647,6 @@ def page5():
                     value_of_partition_key=st.session_state.user_id,
                     limit_num=1
                 )
-                #TODO delete
-                print(f'debate_main_latest_data : {debate_main_latest_data}')
                 if not debate_main_latest_data:
                     turn_num = 0
                 else:
@@ -737,7 +727,7 @@ def page6():
 
     st.write('Note that evaluation using GPT is an experimental feature. Please check it out and give us your feedback.')
 
-    tab1, tab2, tab3 = st.tabs(['Debate Evaluation', 'Perfect Case', 'Debate Analysis'])
+    tab1, tab2 = st.tabs(['Debate Evaluation', 'Debate Analysis']) ## Delete 'Perfect Case'
 
     with tab1:
         st.header("Debate Evaluation")
@@ -778,30 +768,28 @@ def page6():
         else:
             st.write(st.session_state.judgement_result)
 
-    with tab2:
-        st.header("Perfect Case")
+    # with tab2:
+    #     st.header("Perfect Case")
 
-        perfect_case_list = [
-            "This house supports the creation of an international court with a mandate to prosecute leaders for health crimes",
-            "This house believes that governments would be justified in heavily pursuing long-termism",
-            "THBT international discussion forums should not self-censor* in an attempt to increase inclusivity to people from countries with stringent freedom-of-speech rules.",
-            ]
+    #     perfect_case_list = [
+    #         "This house supports the creation of an international court with a mandate to prosecute leaders for health crimes",
+    #         "This house believes that governments would be justified in heavily pursuing long-termism",
+    #         "THBT international discussion forums should not self-censor* in an attempt to increase inclusivity to people from countries with stringent freedom-of-speech rules.",
+    #         ]
 
-        perfect_case_selected = st.selectbox("Choose the Perfect Case", perfect_case_list)
+    #     perfect_case_selected = st.selectbox("Choose the Perfect Case", perfect_case_list)
 
-        perfect_case = perfect_case_selector(
-            perfect_case_selected
-            )
+    #     perfect_case = perfect_case_selector(
+    #         perfect_case_selected
+    #         )
         
-        perfect_case_url = perfect_case['perfect_case_url']
-        perfect_case_text = perfect_case['perfect_case_text']
+    #     perfect_case_url = perfect_case['perfect_case_url']
+    #     perfect_case_text = perfect_case['perfect_case_text']
 
-        st.video(perfect_case_url)
+    #     st.video(perfect_case_url)
+    #     st.write(perfect_case_text)
 
-        st.write(perfect_case_text)
-
-
-    with tab3:
+    with tab2:
         st.header('Debate Analysis')
 
         # 유저의 history를 기반으로 발화량, 빈출 단어, 발화 습관 세 가지를 분석
@@ -999,7 +987,7 @@ def page6():
 pages = {
     "Page 1": page1, # user_id를 입력받는 페이지
     "Page 2": page2, # 원하는 기능을 선택하는 페이지
-    "Page 3": page3, # 과거 토론 내역을 선택하는 페이지
+    # "Page 3": page3, # 과거 토론 내역을 선택하는 페이지
     "Page 4": page4, # 토론 세부사항 설정
     "Page 5": page5, # Total Debate
     "Page 6": page6, # Evaluation Only
