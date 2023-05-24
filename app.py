@@ -709,6 +709,15 @@ print("#"*80)
 #########################################################
 # Page6 - Total Debate Evaluation
 #########################################################
+def get_stop_words():
+    file = open("text/stop_words.txt", "r")
+    try:
+        content = file.read()
+        stopwords = content.split(",")
+    finally:
+        file.close()
+    return set(stopwords)
+
 def page6():
 
     # end time
@@ -811,6 +820,8 @@ def page6():
         st.write("Average Word Per Time: ", average_word_per_time)
 
         # 2. 빈출 단어: 반복해서 사용하는 단어 리스트
+        # 불용어 제거
+        total_word_list = [word for word in total_word_list not in get_stop_words()]
         # 빈도 계산
         frequency = Counter(total_word_list)
         # 가장 빈도가 높은 데이터 출력
