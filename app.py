@@ -19,7 +19,7 @@ from modules.setting_modules import blockPrint
 #########################################################
 # Disabled Console print
 #########################################################
-# blockPrint()
+blockPrint()
 
 #########################################################
 # GET DB
