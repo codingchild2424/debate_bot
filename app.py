@@ -160,7 +160,6 @@ def page1():
     st.header('User Info')
     user_input = st.text_input(
         label='User ID',
-        # key='user_id',
         max_chars=100,
         placeholder="Enter user ID",
     )
@@ -476,21 +475,20 @@ def page4():
 #########################################################
 
 def generate_response(prompt):
-
-    st.session_state['user_debate_history'].append(prompt)
-    st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
-
     if len(prompt.split()) < 5:
         response = "Please speak longer!"
     else:
-        response = gpt_call_context(st.session_state['total_debate_history'])
-    
-    st.session_state['bot_debate_history'].append(response)
-    st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
-    return response
+        try:
+            response = gpt_call_context(st.session_state['total_debate_history'])
+            st.session_state['user_debate_history'].append(prompt)
+            st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
+            st.session_state['bot_debate_history'].append(response)
+            st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
+            return response
+        except:
+            raise RuntimeError("ChatGPT API Error")
 
-def execute_stt(audio, error_message):
-
+def execute_stt(audio):
     # audio 기록 누적
     #user_audio_path = "audio/" + str(st.session_state.user_id) + "_" + str(st.session_state.session_num) + "_" + str(time.time()) + ".wav"
     # audio 기록을 누적하고 싶지 않다면
@@ -501,18 +499,10 @@ def execute_stt(audio, error_message):
 
     try:
         user_input = whisper_transcribe(wav_file)
+        wav_file.close()
+        return user_input
     except:
-        error_message.warning('Whisper Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
-        time.sleep(1)
-        rerun = st.button(label="Rerun", type="primary")
-        if rerun:
-            st.experimental_rerun()
-        st.stop()
-
-    # close file
-    wav_file.close()
-
-    return user_input
+        raise RuntimeError("Whisper API Error")
 
 def page5():
 
@@ -628,7 +618,17 @@ def page5():
         #if submit_button and user_input:
         if submit_button:
             if audio.any():
-                user_input = execute_stt(audio, openai_error_bottom)
+                try:
+                    # user_input = execute_stt(audio)
+                    user_input = "More detials about our issue here. 1. More objective measures: Academic performance is a more objective measure of a student's abilities than other factors such as extracurricular activities, personal essays, or letters of recommendation. These other factors can be biased towards students who have more resources and opportunities. 5. Saves time and money: If colleges only admitted students based on academic performance, they would not need to spend resources on evaluating personal essays, interviews, or other subjective measures of ability. This could save time and money for both colleges and students. "
+                except:
+                    openai_error_bottom.warning('Whisper Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
+                    time.sleep(1)
+                    rerun = st.button(label="Rerun", type="primary")
+                    reload = True
+                    if rerun:
+                        st.experimental_rerun()
+                    st.stop()
                 try :
                     response = generate_response(user_input)
                 except:
