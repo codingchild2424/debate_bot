@@ -480,20 +480,20 @@ def generate_response(prompt):
     else:
         try:
             response = gpt_call_context(st.session_state['total_debate_history'])
-            st.session_state['user_debate_history'].append(prompt)
-            st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
-            st.session_state['bot_debate_history'].append(response)
-            st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
-            return response
         except:
             raise RuntimeError("ChatGPT API Error")
+
+    st.session_state['user_debate_history'].append(prompt)
+    st.session_state['total_debate_history'].append({"role": "user", "content": prompt})
+    st.session_state['bot_debate_history'].append(response)
+    st.session_state['total_debate_history'].append({"role": "assistant", "content": response})
+    return response
 
 def execute_stt(audio):
     # audio 기록 누적
     #user_audio_path = "audio/" + str(st.session_state.user_id) + "_" + str(st.session_state.session_num) + "_" + str(time.time()) + ".wav"
     # audio 기록을 누적하고 싶지 않다면
     user_audio_path = "audio/audio.wav"
-
     wav_file = open(user_audio_path, "wb")
     wav_file.write(audio.tobytes())
 
