@@ -619,8 +619,7 @@ def page5():
         if submit_button:
             if audio.any():
                 try:
-                    # user_input = execute_stt(audio)
-                    user_input = "More detials about our issue here. 1. More objective measures: Academic performance is a more objective measure of a student's abilities than other factors such as extracurricular activities, personal essays, or letters of recommendation. These other factors can be biased towards students who have more resources and opportunities. 5. Saves time and money: If colleges only admitted students based on academic performance, they would not need to spend resources on evaluating personal essays, interviews, or other subjective measures of ability. This could save time and money for both colleges and students. "
+                    user_input = execute_stt(audio)
                 except:
                     openai_error_bottom.warning('Whisper Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
                     time.sleep(1)
