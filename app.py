@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pprint
 import time
+import openai
 
 from decimal import Decimal
 from gtts import gTTS
@@ -98,6 +99,10 @@ if "disabled" not in st.session_state:
 if "session_num" not in st.session_state:
     st.session_state.session_num = 0
 
+# OpenAI API Key
+if "OPENAI_API_KEY" not in st.session_state:
+    st.session_state.OPENAI_API_KEY = ""
+
 #########################################################
 # Page Controller
 #########################################################
@@ -128,13 +133,26 @@ def page2_tab_controller():
 #########################################################
 # Page 1
 #########################################################
-def validate_user_id(id_input):
-    table = dynamodb.Table('DEBO_user')
-    users_set = get_all_items(table, 'user_id')
-    if id_input in users_set:
-        return True
-    else:
+# def validate_user_id(id_input):
+#     table = dynamodb.Table('DEBO_user')
+#     users_set = get_all_items(table, 'user_id')
+#     if id_input in users_set:
+#         return False
+#     else:
+#         return True
+
+def validate_openai_api_key(api_key):
+    openai.api_key = api_key
+    try:
+        response = openai.Completion.create(
+            engine="davinci",
+            prompt="This is a test.",
+            max_tokens=5
+        )
+    except:
         return False
+    else:
+        return True
 
 def save_info(user_id):
     # You can add the code to save the submitted info (e.g., to a database)
@@ -157,24 +175,55 @@ def save_info(user_id):
         st.session_state.session_num = debate_setting[0]['session_num']
 
 def page1():
+    val_id = False
+    val_api_key = False
+
     st.header('User Info')
-    user_input = st.text_input(
+    st.caption('Please enter User ID and OpenAI API Key both:)')
+    user_id = st.text_input(
         label='User ID',
-        max_chars=100,
-        placeholder="Enter user ID",
+        max_chars=20,
+        placeholder="Enter user ID (anything you want)",
     )
-    message = st.empty()
-    
-    if user_input:
-        if validate_user_id(user_input):
-            save_info(user_input)
-            message.success('User ID successfully verified!', icon="✅")
-            st.session_state.disabled = False
+    # message_id = st.empty()
+    openai_api_key = st.text_input(
+        label='OpenAI API Key',
+        placeholder="Paste your OpenAI API key (sk-...)",
+        help='You can get your API key from https://platform.openai.com/account/api-keys.',
+        type="password",
+    )
+    message_api_key = st.empty()
+
+    if user_id:
+        save_info(user_id)
+        val_id = True
+    #     if validate_user_id(user_id):
+    #         message_id.success('User ID successfully verified!', icon="✅")
+    #         save_info(user_id)
+    #         val_id = True
+    #     else:
+    #         message_id.error('Please fill in correct User ID.', icon="🚨")
+    #         st.session_state.disabled = True
+    else:
+        # message_id.error('Please fill in User ID.', icon="🚨")
+        st.session_state.disabled = True
+
+    if openai_api_key:
+        if validate_openai_api_key(openai_api_key):
+            message_api_key.success('OpenAI API Key successfully verified!', icon="✅")
+            st.session_state["OPENAI_API_KEY"] = openai_api_key
+            val_api_key = True
         else:
-            message.error('Please fill in correct User ID', icon="🚨")
+            message_api_key.error(
+                f'AuthenticationError: Incorrect API key provided: "{openai_api_key}".'
+                '\nYou can find your API key at https://platform.openai.com/account/api-keys.', icon="🚨"
+            )
             st.session_state.disabled = True
     else:
         st.session_state.disabled = True
+
+    if val_id and val_api_key:
+        st.session_state.disabled = False
 
     st.button(
         label='Next',
@@ -439,7 +488,7 @@ def page4():
                 result = st.session_state.ask_gpt_prev_response
             else:
                 try:
-                    result = gpt_call(user_input)
+                    result = gpt_call(st.session_state['OPENAI_API_KEY'], user_input)
                     st.session_state.ask_gpt_prev_response = result
                 except:
                     st.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
@@ -479,7 +528,7 @@ def generate_response(prompt):
         response = "Please speak longer!"
     else:
         try:
-            response = gpt_call_context(st.session_state['total_debate_history'])
+            response = gpt_call_context(st.session_state['OPENAI_API_KEY'], st.session_state['total_debate_history'])
         except:
             raise RuntimeError("ChatGPT API Error")
 
@@ -498,7 +547,7 @@ def execute_stt(audio):
     wav_file.write(audio.tobytes())
 
     try:
-        user_input = whisper_transcribe(wav_file)
+        user_input = whisper_transcribe(st.session_state['OPENAI_API_KEY'], wav_file)
         wav_file.close()
         return user_input
     except:
@@ -526,7 +575,7 @@ def page5():
                 result = st.session_state.ask_gpt_prev_response
             else:
                 try:
-                    result = gpt_call(user_input)
+                    result = gpt_call(st.session_state['OPENAI_API_KEY'], user_input)
                     st.session_state.ask_gpt_prev_response = result
                 except:
                     st.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
@@ -577,7 +626,7 @@ def page5():
         first_prompt = "Now we're going to start. Summarize the subject and your role. And ask user ready to begin."
 
         try:
-            response = gpt_call(debate_preset + "\n" + first_prompt, role="system")
+            response = gpt_call(st.session_state['OPENAI_API_KEY'], debate_preset + "\n" + first_prompt, role="system")
         except:
             st.warning('Chat-GPT Error : The engine is currently overloaded. Please click "Rerun" button below.', icon="⚠️")
             time.sleep(1)
@@ -606,9 +655,13 @@ def page5():
 
     with container:
         with st.form(key='my_form', clear_on_submit=True):
+            st.caption("1. Click '⏺️ Record' button and it turn into '⏹️ Recording...' and say something.")
+            st.caption("2. After finish your utterance, click '⏹️ Recording...' button again and it turn off.")
+            st.caption("3. Click '💬 Send' button and DEBO process your input in short time and give you response.")
+            
             user_input = None
             # record voice
-            audio = audiorecorder("⏺️ Click to record", "⏹️ Recording...")
+            audio = audiorecorder("⏺️ Record", "⏹️ Recording...")
             if np.array_equal(st.session_state['pre_audio'], audio):
                 audio = np.array([])
 
