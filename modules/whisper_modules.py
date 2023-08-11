@@ -1,25 +1,27 @@
 import openai
 import os
 import random
-import streamlit as st
+# import streamlit as st
 
 from langchain.prompts import PromptTemplate
 from modules.gpt_modules import gpt_call
-from dotenv import dotenv_values
+# from dotenv import dotenv_values
 
-config = dotenv_values(".env")
+# config = dotenv_values(".env")
 
-if config:
-    openai.organization = config.get('OPENAI_ORGANIZATION')
-    openai.api_key = config.get('OPENAI_API_KEY')
-else:
-    openai.organization = st.secrets['OPENAI_ORGANIZATION'] #config.get('OPENAI_ORGANIZATION')
-    openai.api_key = st.secrets['OPENAI_API_KEY'] #config.get('OPENAI_API_KEY')
+# if config:
+#     openai.organization = config.get('OPENAI_ORGANIZATION')
+#     openai.api_key = config.get('OPENAI_API_KEY')
+# else:
+#     openai.organization = st.secrets['OPENAI_ORGANIZATION'] #config.get('OPENAI_ORGANIZATION')
+#     openai.api_key = st.secrets['OPENAI_API_KEY'] #config.get('OPENAI_API_KEY')
 
 
-def debate_in_sound(audio):
+def debate_in_sound(api_key, audio):
     os.rename(audio, audio + '.wav')
     file = open(audio + '.wav', "rb")
+
+    openai.api_key = api_key
 
     # user_words
     user_prompt = openai.Audio.transcribe("whisper-1", file).text
@@ -59,12 +61,13 @@ def debate_in_sound(audio):
     bot_prompt = prompt_template.format(
                 prompt=user_prompt
             )
-    response = gpt_call(bot_prompt)
+    response = gpt_call(api_key, bot_prompt)
 
     return response
 
 
-def whisper_transcribe(audio):
+def whisper_transcribe(api_key, audio_file):
+    openai.api_key = api_key
 
     audio_file= open("audio/audio.wav", "rb")
     result = openai.Audio.transcribe("whisper-1", audio_file).text
