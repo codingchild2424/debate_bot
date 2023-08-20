@@ -1,13 +1,5 @@
----
-title: Debate With Gpt (DEV)
-emoji: 💻
-colorFrom: blue
-colorTo: green
-sdk: streamlit
-sdk_version: 1.19.0
-app_file: app.py
-pinned: false
-license: openrail
----
+# DEBO: Debating Bot for Debate Education
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+This is main repository of DEBO which is educational research project named DEBO.
+
+If you want to use DEBO, you have to be ready for the OpenAI API Key.
